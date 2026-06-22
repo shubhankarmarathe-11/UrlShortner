@@ -1,6 +1,7 @@
 import { RedisCli } from "./config/redis.ts";
-import { UrlModel } from "./Sorting.model.ts";
-import { MongoClient } from "mongodb";
+import { UrlModel, LinkAnalyticsModel } from "./Sorting.model.ts";
+import { db, client } from "./config/mongoconfig.ts";
+import { ObjectId } from "mongodb";
 
 export async function EntryService({
   slug,
@@ -11,40 +12,38 @@ export async function EntryService({
   slug: string;
   userId: string;
   longlink: string;
-  expiretime: string;
+  expiretime: object;
 }) {
-  const client = new MongoClient(`${process.env.MONGODB_URI}`);
-
-  try {
-    await client.connect();
-  } catch (error) {
-    console.error(error);
-    return { status: false, mess: "not connected" };
-  }
-
-  const db = client.db(`${process.env.MONGO_DB_DBNAME}`);
-
   const urlcolletion = await db.collection("urlmodels");
   const urlanalyticcollection = await db.collection("linkanalyticsmodels");
-  await urlcolletion.createIndex({ expireAt: 1 }, { expireAfterSeconds: 10 });
 
-  const session = await client.startSession();
+  const session = client.startSession();
   try {
-    await session.startTransaction();
+    session.startTransaction();
 
     const InsetDoc = await urlcolletion.insertOne(
       {
         LongUrl: longlink,
-        UserId: userId,
+        UserId: new ObjectId(userId),
         Slug: slug,
         expireAt: expiretime,
       },
       { session: session },
     );
+    await urlcolletion.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
     const analytics = await urlanalyticcollection.insertOne(
-      { LinkId: InsetDoc.insertedId },
+      {
+        LinkId: InsetDoc.insertedId,
+        userId: new ObjectId(userId),
+        expireAt: expiretime,
+      },
       { session: session },
+    );
+
+    await urlanalyticcollection.createIndex(
+      { expireAt: 1 },
+      { expireAfterSeconds: 0 },
     );
 
     await urlcolletion.updateOne(
@@ -56,11 +55,67 @@ export async function EntryService({
     await session.commitTransaction();
     await session.endSession();
 
+    const exdatetime: any = new Date(String(expiretime));
+    const current: any = new Date();
+
+    const remainingSeconds = Math.floor((exdatetime - current) / 1000);
+
+    await RedisCli.hset(`${userId}:${slug}`, {
+      link_id: InsetDoc.insertedId,
+      analytics_id: analytics.insertedId,
+      longlink: longlink,
+    });
+
+    await RedisCli.expire(`${userId}:${slug}`, remainingSeconds);
+
     return { status: true, mess: "Data inserted" };
   } catch (error) {
     console.error(error);
     await session.abortTransaction();
     await session.endSession();
     return { status: false, mess: "transaction error" };
+  }
+}
+
+export async function GetAllLinks({ userId }: { userId: string }) {
+  try {
+    const Fetch = await UrlModel.find({ UserId: userId });
+
+    if (Fetch.length == 0)
+      return { status: true, mess: "Data not Found", data: null };
+
+    return { status: true, mess: "Data Found", data: Fetch };
+  } catch (error) {
+    console.error(error);
+    await session.abortTransaction();
+    await session.endSession();
+    return { status: false, mess: "transaction error", data: null };
+  }
+}
+
+export async function FetchDataWithSlug({ slug }: { slug: string }) {
+  try {
+    const FetchData = await UrlModel.findOne({ Slug: slug });
+    console.log(FetchData);
+
+    if (FetchData == null)
+      return { status: true, mess: "Link Expired", data: null };
+
+    return { status: true, mess: "link active", data: FetchData };
+  } catch (error) {
+    console.error(error);
+    return { status: false, mess: "mongodb eror", data: null };
+  }
+}
+
+export async function UpdateAnalytics({ LinkId }: { LinkId: string }) {
+  try {
+    const Update = await LinkAnalyticsModel.updateOne(
+      { LinkId: LinkId },
+      { $push: { Data: {} } },
+    );
+  } catch (error) {
+    console.error(error);
+    return { status: false, mess: "mongodb eror" };
   }
 }

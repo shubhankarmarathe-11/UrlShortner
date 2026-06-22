@@ -1,17 +1,26 @@
 import express from "express";
-import { VerifyAccessToken } from "./Short.middleware.ts";
+import {
+  VerifyAccessToken,
+  RedirectMiddleware,
+  CreateNewEntryMiddleware,
+} from "./Short.middleware.ts";
 import {
   CreateEntry,
-  GetALLLinks,
+  GetLinksController,
   RedirectController,
 } from "./Short.controller.ts";
 
 const SortingRoute = express.Router();
 
-SortingRoute.post("/api/short/link", VerifyAccessToken, CreateEntry);
+SortingRoute.post(
+  "/api/short/link",
+  VerifyAccessToken,
+  CreateNewEntryMiddleware,
+  CreateEntry,
+);
 
-SortingRoute.get("/api/short/links", VerifyAccessToken, GetALLLinks);
+SortingRoute.get("/api/short/link", VerifyAccessToken, GetLinksController);
 
-SortingRoute.get("/:id/:sulg", RedirectController);
+SortingRoute.get("/:userid/:slug", RedirectMiddleware, RedirectController);
 
 export { SortingRoute };

@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { UrlModel } from "./Sorting.model.ts";
-import { EntryService } from "./Sorting.services.ts";
+import { EntryService, GetAllLinks } from "./Sorting.services.ts";
+import { RedisCli } from "./config/redis.ts";
 
 export async function CreateEntry(req: Request, res: Response) {
   try {
@@ -9,7 +10,7 @@ export async function CreateEntry(req: Request, res: Response) {
 
     const Insert = await EntryService({
       slug: slug,
-      expiretime: expiretime,
+      expiretime: new Date(expiretime),
       longlink: longlink,
       userId: userId,
     });
@@ -25,8 +26,17 @@ export async function CreateEntry(req: Request, res: Response) {
     return res.status(500).send("server error please try again");
   }
 }
-export async function GetALLLinks(req: Request, res: Response) {
+export async function GetLinksController(req: Request, res: Response) {
   try {
+    const FetchAllLinks = await GetAllLinks({ userId: String(req.userId) });
+
+    if (FetchAllLinks.mess == "transaction error")
+      return res.status(500).send("server error please try again");
+
+    if (FetchAllLinks.mess == "Data not Found")
+      return res.status(404).send("no data availabe");
+
+    return res.status(200).send({ data: FetchAllLinks.data });
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");
@@ -34,7 +44,7 @@ export async function GetALLLinks(req: Request, res: Response) {
 }
 export async function RedirectController(req: Request, res: Response) {
   try {
-    let { id, slug } = req.params;
+    return res.redirect(String(req.LongURL));
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");

@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { RedisCli } from "./config/redis.ts";
-import { VerifyToken, SignAccessToken } from "./utils/GenerateToken.ts";
+import { FetchDataWithSlug } from "./Sorting.services.ts";
 
 export async function VerifyAccessToken(
   req: Request,
@@ -9,67 +9,8 @@ export async function VerifyAccessToken(
 ) {
   try {
     let refreshtoken = req.cookies["refreshToken"];
-    let accesstoken = req.cookies["accessToken"];
 
-    const isProduction = process.env.NODE_ENV === "production";
-
-    if (!refreshtoken) {
-      await res.clearCookie("refreshToken");
-      await res.clearCookie("accessToken");
-
-      return res.status(401).send("refresh token expired *");
-    }
-
-    let ttl = await RedisCli.ttl(`${refreshtoken}`);
-
-    if (ttl <= 10) {
-      res.clearCookie("refreshToken");
-      res.clearCookie("accessToken");
-
-      return res.status(401).send("refresh token expired");
-    }
-    let verifyRefresh = await VerifyToken(String(refreshtoken));
-
-    if (
-      verifyRefresh.payload == undefined ||
-      verifyRefresh.payload.type != "refresh"
-    ) {
-      await res.clearCookie("refreshToken");
-      await res.clearCookie("accessToken");
-
-      return res.status(401).send("refresh token expired");
-    }
-
-    let ttl2 = await RedisCli.ttl(`${accesstoken}`);
-
-    if (!accesstoken || ttl2 <= 10) {
-      let SignAccess = await SignAccessToken({
-        userId: String(verifyRefresh.payload.userId),
-        sessionId: String(verifyRefresh.payload.sessionId),
-      });
-
-      if (SignAccess.Signaccess == undefined)
-        return res.status(500).send("server error please try again");
-
-      let at = await SignAccess.Signaccess;
-
-      res.cookie("accessToken", at, {
-        path: "/",
-        maxAge: 15 * 60 * 1000,
-        httpOnly: true,
-        secure: isProduction ? true : false,
-        sameSite: isProduction ? "none" : "lax",
-      });
-
-      await RedisCli.set(
-        `${await SignAccess.Signaccess}`,
-        `${verifyRefresh.payload.userId}`,
-        "EX",
-        900,
-      );
-
-      req.userId = await RedisCli.get(String(refreshtoken));
-    }
+    req.userId = await RedisCli.get(String(refreshtoken));
 
     Next();
   } catch (error) {
@@ -78,7 +19,7 @@ export async function VerifyAccessToken(
   }
 }
 
-export async function CreateNewEntryController(
+export async function CreateNewEntryMiddleware(
   req: Request,
   res: Response,
   Next: NextFunction,
@@ -89,11 +30,61 @@ export async function CreateNewEntryController(
     if (slug == "" || longlink == "" || expiretime == "")
       return res.status(401).send(" please enter the proper details");
 
-    const findslug = RedisCli.get(`${slug}`);
+    const findslug = await RedisCli.get(`${slug}`);
 
     if (findslug == null) return Next();
 
     return res.status(401).send("please select another name for url");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("server error please try again");
+  }
+}
+
+export async function RedirectMiddleware(
+  req: Request,
+  res: Response,
+  Next: NextFunction,
+) {
+  try {
+    let { slug, userid } = req.params;
+
+    const FindLongUrl = await RedisCli.hgetall(`${userid}:${slug}`);
+
+    if (FindLongUrl == null) {
+      const Fetch = await FetchDataWithSlug({ slug: String(slug) });
+
+      if (Fetch.status == false)
+        return res.status(500).send("server error please try again");
+
+      if (Fetch.mess == "Link Expired")
+        return res.status(404).send("link expired");
+
+      req.link_id = Fetch.data?._id;
+      req.analytics_id = Fetch.data?.LinkAnalytics[0];
+      req.LongURL = Fetch.data?.LongUrl;
+
+      await RedisCli.hset(`${userid}:${slug}`, {
+        link_id: Fetch.data?._id,
+        analytics_id: Fetch.data?.LinkAnalytics[0],
+        longlink: Fetch.data?.LongUrl,
+      });
+
+      const exdatetime: any = new Date(String(Fetch.data?.expireAt));
+      const current: any = new Date();
+
+      const remainingSeconds = Math.floor((exdatetime - current) / 1000);
+
+      await RedisCli.expire(`${userid}:${slug}`, remainingSeconds);
+
+      Next();
+    }
+
+    req.link_id = FindLongUrl.link_id;
+    req.analytics_id = FindLongUrl.analytics_id;
+    req.LongURL = FindLongUrl.longlink;
+
+    Next();
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");

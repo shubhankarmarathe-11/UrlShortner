@@ -14,8 +14,11 @@ const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
-    origin: isProduction ? "*" : "http://localhost:5173/",
+    origin: isProduction
+      ? "https://minibaasproject.shubhankarmarathe.online"
+      : "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    // allowedHeaders: "*",
     credentials: isProduction ? true : true,
   }),
 );

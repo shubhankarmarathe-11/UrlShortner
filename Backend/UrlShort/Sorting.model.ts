@@ -10,6 +10,7 @@ const UrlSchema = new mongoose.Schema(
     Slug: {
       type: String,
       required: true,
+      unique: true,
     },
 
     UserId: {
@@ -26,8 +27,6 @@ const UrlSchema = new mongoose.Schema(
 
     expireAt: {
       type: Date,
-      expires: 10,
-      required: true,
     },
   },
   { timestamps: true },
@@ -35,6 +34,11 @@ const UrlSchema = new mongoose.Schema(
 
 const LinkAnalyticsSchema = new mongoose.Schema(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "usermodel",
+    },
+
     LinkId: {
       type: Schema.Types.ObjectId,
       ref: "UrlModel",
@@ -47,15 +51,9 @@ const LinkAnalyticsSchema = new mongoose.Schema(
             type: String,
             required: true,
           },
-
           host: {
             type: String,
             required: true,
-          },
-          count: {
-            type: Number,
-            required: true,
-            default: 0,
           },
           referal: {
             type: String,
@@ -64,6 +62,16 @@ const LinkAnalyticsSchema = new mongoose.Schema(
         },
       ],
       required: false,
+    },
+
+    ClickedCount: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+
+    expireAt: {
+      type: Date,
     },
   },
   { timestamps: true },
