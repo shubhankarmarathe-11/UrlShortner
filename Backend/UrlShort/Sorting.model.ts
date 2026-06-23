@@ -47,18 +47,17 @@ const LinkAnalyticsSchema = new mongoose.Schema(
     Data: {
       type: [
         {
-          userip: {
-            type: String,
-            required: true,
-          },
-          host: {
-            type: String,
-            required: true,
-          },
-          referal: {
-            type: String,
-            required: true,
-          },
+          userip: { type: String },
+          clickedAt: { type: String },
+          userAgent: { type: String },
+          browser: { type: String },
+          os: { type: String },
+          deviceType: { type: String },
+          referer: { type: String },
+          utmSource: { type: String },
+          utmMedium: { type: String },
+          utmCampaign: { type: String },
+          responseTimeMs: { type: Number },
         },
       ],
       required: false,

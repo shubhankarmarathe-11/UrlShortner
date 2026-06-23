@@ -108,14 +108,83 @@ export async function FetchDataWithSlug({ slug }: { slug: string }) {
   }
 }
 
-export async function UpdateAnalytics({ LinkId }: { LinkId: string }) {
+export async function UpdateAnalytics({
+  analyticsId,
+  dataObj,
+}: {
+  analyticsId: string;
+  dataObj: object;
+}) {
   try {
-    const Update = await LinkAnalyticsModel.updateOne(
-      { LinkId: LinkId },
-      { $push: { Data: {} } },
-    );
+    const Update = await LinkAnalyticsModel.findOne({ _id: analyticsId });
+
+    if (Update == null) return { status: false, mess: "not found" };
+
+    await Update.ClickedCount++;
+
+    await Update.Data?.push(dataObj);
+
+    await Update.save();
+
+    return { status: true, mess: "updated" };
   } catch (error) {
     console.error(error);
     return { status: false, mess: "mongodb eror" };
+  }
+}
+
+export async function FetchAnalyticsService({
+  analyticsId,
+}: {
+  analyticsId: string;
+}) {
+  try {
+    const Find = await LinkAnalyticsModel.findOne({ _id: analyticsId });
+
+    if (Find == null) return { status: false, mess: "not found" };
+
+    return { status: true, mess: "updated", data: Find };
+  } catch (error) {
+    console.error(error);
+    return { status: false, mess: "mongodb eror" };
+  }
+}
+
+export async function DeleteLinkService({ linkId }: { linkId: string }) {
+  const urlcolletion = await db.collection("urlmodels");
+  const urlanalyticcollection = await db.collection("linkanalyticsmodels");
+
+  const session = client.startSession();
+  try {
+    session.startTransaction();
+
+    const Find = await urlcolletion.findOne(
+      { _id: new ObjectId(linkId) },
+      { session: session },
+    );
+
+    if (Find == null) return { status: true, mess: "Data not found" };
+
+    await urlanalyticcollection.deleteOne(
+      { LinkId: new ObjectId(linkId) },
+      { session: session },
+    );
+
+    await urlcolletion.deleteOne(
+      { _id: new ObjectId(linkId) },
+      { session: session },
+    );
+
+    session.commitTransaction();
+    session.endSession();
+
+    await RedisCli.del(`${Find.UserId}:${Find.Slug}`);
+
+    return { status: true, mess: "Link Removed" };
+  } catch (error) {
+    console.error(error);
+    await session.abortTransaction();
+    await session.endSession();
+    return { status: false, mess: "transaction error" };
   }
 }

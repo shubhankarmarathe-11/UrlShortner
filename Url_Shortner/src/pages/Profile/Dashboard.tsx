@@ -16,6 +16,8 @@ const Dashboard = () => {
   const SetisLogged = isLoggedIn((state) => state.makeLogged);
   const SetisLogout = isLoggedIn((state) => state.makeLogout);
 
+  const blockOlddate = new Date().toISOString().slice(0, 16);
+
   const [shoLoader, SetshowLoader] = useState(true);
 
   const [showAlert, SetshowAlert] = useState({
@@ -116,6 +118,21 @@ const Dashboard = () => {
     }
   }
 
+  // delete Request
+
+  async function DeleteLinkFunction(link: string) {
+    try {
+      let res = await axios.delete(
+        `${import.meta.env.VITE_SHORT_URL}/api/short/link/${link}`,
+        { withCredentials: true },
+      );
+      console.log(res);
+    } catch (error: any) {
+      console.log(error);
+      ShowAlert(true, "please try again", error.response.data);
+    }
+  }
+
   useEffect(() => {
     CheckIsLoggedIn();
   }, []);
@@ -136,7 +153,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="h-screen bg-sky-50 p-5">
+      <div className="h-full  bg-sky-50 p-5">
         {showAlert.status ? (
           <span className="absolute w-full flex items-center justify-center ">
             <Alert className="w-80 bg-neutral">
@@ -198,6 +215,7 @@ const Dashboard = () => {
             />
             <h1>Select Date and Time</h1>
             <Input
+              min={blockOlddate}
               className="w-80 border-2"
               placeholder=""
               type="datetime-local"
@@ -218,36 +236,88 @@ const Dashboard = () => {
           <span className="flex flex-col gap-5 my-14 items-center justify-center">
             {FetchedLinks.map((data) => {
               return (
-                <div className="w-4xl ">
-                  <Card
-                    key={data._id}
-                    className="p-3 cursor-pointer bg-transparent"
-                  >
-                    <CardContent>
-                      <span className="m-2 flex flex-col gap-2">
-                        <p className="font-bold">Long Url</p>
-                        <h1>{data.LongUrl}</h1>
+                <div key={data._id} className="w-full max-w-4xl">
+                  <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-5 bg-card">
+                    <CardContent className="space-y-5">
+                      {/* Long URL */}
+                      <div>
+                        <p className="text-sm text-muted-foreground font-medium">
+                          Long URL
+                        </p>
+
+                        <p className="truncate text-base mt-1">
+                          {data.LongUrl}
+                        </p>
+                      </div>
+
+                      {/* Slug + Expiry */}
+                      <div className="flex flex-wrap gap-5 items-center ">
+                        <div className="flex flex-col">
+                          <p className="text-sm text-muted-foreground">Slug</p>
+
+                          <span className="font-semibold text-lg">
+                            {data.Slug}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col">
+                          <p className="text-sm text-muted-foreground">
+                            Expire At
+                          </p>
+
+                          <span className="rounded-full w-fit px-3 py-1 bg-red-100 text-red-600 text-sm">
+                            {new Date(data.expireAt).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="flex items-center gap-8">
+                        <Button
+                          className="bg-green-600 cursor-pointer"
+                          onClick={() => {
+                            navigate(`/dashboard/${data.LinkAnalytics[0]}`);
+                          }}
+                        >
+                          View Analytics
+                        </Button>
+                        <Button
+                          className="bg-red-600 cursor-pointer"
+                          onClick={() => {
+                            DeleteLinkFunction(data._id);
+                          }}
+                        >
+                          Delete
+                        </Button>
                       </span>
-                      <span className="m-2 flex flex-col gap-2">
-                        <p className="font-bold ">Slug </p>
-                        <h1>{data.Slug}</h1>
-                      </span>
-                      <span className="m-2 flex flex-col gap-2">
-                        <p className="font-bold ">ExpireAT</p>
-                        <h1>{data.expireAt}</h1>
-                      </span>
-                      <span className="m-2 flex flex-col gap-2">
-                        <p className="font-bold ">ShortLink</p>
-                        <h1>
+
+                      {/* Short URL */}
+                      <div>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Short Link
+                        </p>
+
+                        <div className="flex items-center justify-between gap-3 border rounded-xl p-3">
                           <Link
-                            to={`${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`}
-                            className="text-violet-700 underline"
+                            to={`${
+                              import.meta.env.VITE_SHORT_URL
+                            }/${data.UserId}/${data.Slug}`}
+                            className="text-violet-600 hover:text-violet-500 underline break-all font-medium "
                           >
                             {import.meta.env.VITE_SHORT_URL}/{data.UserId}/
                             {data.Slug}
                           </Link>
-                        </h1>
-                      </span>
+
+                          <button
+                            onClick={() =>
+                              navigator.clipboard.writeText(
+                                `${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`,
+                              )
+                            }
+                            className="px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition "
+                          >
+                            Copy
+                          </button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
