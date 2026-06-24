@@ -80,7 +80,7 @@ const Signup = () => {
   if (shoLoader) {
     return (
       <>
-        <div className="flex justify-center items-center bg-sky-50 h-screen">
+        <div className="flex justify-center items-center bg-sky-50 min-h-screen">
           <Spinner className="size-8" />
         </div>
       </>
@@ -89,10 +89,10 @@ const Signup = () => {
 
   return (
     <>
-      <div className="h-screen bg-sky-50 p-5">
+      <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl text-primary font-bold cursor-pointer">
-            <span className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
+            <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
               SwiftLink
             </span>
@@ -101,22 +101,22 @@ const Signup = () => {
             onClick={() => {
               navigate("/");
             }}
-            className="bg-transparent text-primary text-lg cursor-pointer hover:bg-transparent"
+            className="bg-transparent text-primary text-base sm:text-lg cursor-pointer hover:bg-transparent"
           >
             Back to Home
           </Button>
         </div>
-        <div className="my-5 w-full flex justify-center items-center">
-          <Card className="w-xl p-8 flex flex-col items-center">
+        <div className="my-5 w-full flex justify-center items-center px-2">
+          <Card className="w-full max-w-xl p-5 sm:p-8 flex flex-col items-center">
             <CardTitle className="text-center text-2xl font-bold">
               Create your account
             </CardTitle>
             <CardDescription className="text-center text-sm">
               Experience the future of link management
             </CardDescription>
-            <CardContent className="">
+            <CardContent className="w-full">
               <form
-                className="flex flex-col"
+                className="flex flex-col w-full"
                 onSubmit={(e) => {
                   e.preventDefault();
                   SubmitSignup();
@@ -188,7 +188,7 @@ const Signup = () => {
                   </h1>
                 </span>
 
-                <Button className="bg-primary text-white w-96 p-8 cursor-pointer my-3">
+                <Button className="bg-primary text-white w-full p-8 cursor-pointer my-3">
                   Create Account
                 </Button>
               </form>
@@ -196,7 +196,7 @@ const Signup = () => {
             <h1 className="font-bold">
               Already have an account?{" "}
               <span
-                className="text-primary cursor-pointer "
+                className="text-primary cursor-pointer"
                 onClick={() => {
                   navigate("/sign-in");
                 }}

@@ -42,7 +42,7 @@ export async function GetLinksController(req: Request, res: Response) {
       return res.status(500).send("server error please try again");
 
     if (FetchAllLinks.mess == "Data not Found")
-      return res.status(404).send("no data availabe");
+      return res.status(404).send("no data available");
 
     return res.status(200).send({ data: FetchAllLinks.data });
   } catch (error) {

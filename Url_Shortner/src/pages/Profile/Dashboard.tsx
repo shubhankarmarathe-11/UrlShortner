@@ -113,8 +113,8 @@ const Dashboard = () => {
       console.log(res.data.data);
       SetFetchedLinks(res.data.data);
     } catch (error: any) {
-      console.log(error);
-      ShowAlert(true, "please try again", error.response.data);
+      if (error.response.data == "no data available")
+        ShowAlert(true, "Data not found", error.response.data);
     }
   }
 
@@ -144,7 +144,7 @@ const Dashboard = () => {
   if (shoLoader) {
     return (
       <>
-        <div className="flex justify-center items-center bg-sky-50 h-screen">
+        <div className="flex justify-center items-center bg-sky-50 min-h-screen">
           <Spinner className="size-8" />
         </div>
       </>
@@ -153,10 +153,10 @@ const Dashboard = () => {
 
   return (
     <>
-      <div className="h-full  bg-sky-50 p-5">
+      <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         {showAlert.status ? (
-          <span className="absolute w-full flex items-center justify-center ">
-            <Alert className="w-80 bg-neutral">
+          <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
+            <Alert className="w-full max-w-sm bg-neutral">
               <AlertTitle className="text-lg text-white">
                 {showAlert.title}
               </AlertTitle>
@@ -168,30 +168,30 @@ const Dashboard = () => {
         ) : null}
 
         {/* header */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl text-primary font-bold cursor-pointer">
-            <span className="flex items-center gap-3">
+        <div className="flex justify-between items-center mb-2">
+          <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
+            <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
               SwiftLink
             </span>
           </h1>
           <Button
             onClick={LogoutFunction}
-            className="bg-transparent text-red-600 text-lg cursor-pointer hover:bg-transparent"
+            className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
           >
             Logout
           </Button>
         </div>
 
-        <div className="my-5 flex justify-center items-center ">
+        <div className="my-5 flex justify-center items-center">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               CreatelinkFunction();
             }}
-            className="w-6xl flex flex-col justify-center gap-5"
+            className="w-full max-w-3xl flex flex-col justify-center gap-4 sm:gap-5"
           >
-            <h1>Enter Long Url</h1>
+            <h1 className="text-sm font-medium">Enter Long Url</h1>
             <Input
               type="url"
               placeholder="Enter Url"
@@ -202,7 +202,7 @@ const Dashboard = () => {
               className="p-5 border-2"
               required={true}
             />
-            <h1>Enter Slug</h1>
+            <h1 className="text-sm font-medium">Enter Slug</h1>
             <Input
               type="text"
               className="p-5 border-2"
@@ -213,10 +213,10 @@ const Dashboard = () => {
               }}
               required={true}
             />
-            <h1>Select Date and Time</h1>
+            <h1 className="text-sm font-medium">Select Date and Time</h1>
             <Input
               min={blockOlddate}
-              className="w-80 border-2"
+              className="w-full sm:w-80 border-2"
               placeholder=""
               type="datetime-local"
               value={linkData.datetime}
@@ -231,14 +231,16 @@ const Dashboard = () => {
           </form>
         </div>
 
-        <div className="my-5 w-screen">
-          <h1 className="my-5 text-3xl text-center">Active Links</h1>
-          <span className="flex flex-col gap-5 my-14 items-center justify-center">
+        <div className="my-5 w-full">
+          <h1 className="my-5 text-2xl sm:text-3xl text-center">
+            Active Links
+          </h1>
+          <span className="flex flex-col gap-5 my-8 sm:my-14 items-center justify-center px-0 sm:px-4">
             {FetchedLinks.map((data) => {
               return (
                 <div key={data._id} className="w-full max-w-4xl">
-                  <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-5 bg-card">
-                    <CardContent className="space-y-5">
+                  <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-3 sm:p-5 bg-card">
+                    <CardContent className="space-y-4 sm:space-y-5">
                       {/* Long URL */}
                       <div>
                         <p className="text-sm text-muted-foreground font-medium">
@@ -251,7 +253,7 @@ const Dashboard = () => {
                       </div>
 
                       {/* Slug + Expiry */}
-                      <div className="flex flex-wrap gap-5 items-center ">
+                      <div className="flex flex-wrap gap-4 sm:gap-5 items-center">
                         <div className="flex flex-col">
                           <p className="text-sm text-muted-foreground">Slug</p>
 
@@ -270,9 +272,10 @@ const Dashboard = () => {
                           </span>
                         </div>
                       </div>
-                      <span className="flex items-center gap-8">
+
+                      <span className="flex flex-wrap items-center gap-3 sm:gap-8">
                         <Button
-                          className="bg-green-600 cursor-pointer"
+                          className="bg-green-600 cursor-pointer text-sm sm:text-base"
                           onClick={() => {
                             navigate(`/dashboard/${data.LinkAnalytics[0]}`);
                           }}
@@ -280,7 +283,7 @@ const Dashboard = () => {
                           View Analytics
                         </Button>
                         <Button
-                          className="bg-red-600 cursor-pointer"
+                          className="bg-red-600 cursor-pointer text-sm sm:text-base"
                           onClick={() => {
                             DeleteLinkFunction(data._id);
                           }}
@@ -295,12 +298,12 @@ const Dashboard = () => {
                           Short Link
                         </p>
 
-                        <div className="flex items-center justify-between gap-3 border rounded-xl p-3">
+                        <div className="flex items-center justify-between gap-2 sm:gap-3 border rounded-xl p-2 sm:p-3 overflow-hidden">
                           <Link
                             to={`${
                               import.meta.env.VITE_SHORT_URL
                             }/${data.UserId}/${data.Slug}`}
-                            className="text-violet-600 hover:text-violet-500 underline break-all font-medium "
+                            className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
                           >
                             {import.meta.env.VITE_SHORT_URL}/{data.UserId}/
                             {data.Slug}
@@ -312,7 +315,7 @@ const Dashboard = () => {
                                 `${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`,
                               )
                             }
-                            className="px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition "
+                            className="shrink-0 px-2 sm:px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition text-xs sm:text-sm"
                           >
                             Copy
                           </button>
@@ -325,8 +328,6 @@ const Dashboard = () => {
             })}
           </span>
         </div>
-
-        {/* dashboard */}
       </div>
     </>
   );

@@ -1,14 +1,28 @@
 import express from "express";
-import { SignupMiddleware, VerifyAccessToken } from "./auth.middleware.ts";
+import {
+  SignupMiddleware,
+  VerifyAccessToken,
+  googleOAuthMiddleware,
+} from "./auth.middleware.ts";
 import {
   SignupController,
   LoginController,
   LogoutController,
   VerifyOtpController,
   ChangePasswordController,
+  GoogleLogin,
+  GoogleSignup,
 } from "./auth.controller.ts";
 
 const AuthServiceRoute = express.Router();
+
+AuthServiceRoute.post("/auth/google/login", googleOAuthMiddleware, GoogleLogin);
+
+AuthServiceRoute.post(
+  "/auth/google/signup",
+  googleOAuthMiddleware,
+  GoogleSignup,
+);
 
 AuthServiceRoute.post("/auth/signup", SignupMiddleware, SignupController);
 

@@ -15,15 +15,18 @@ const UserSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    EmailVerified: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
     role: {
       type: String,
       required: true,
       default: "customer",
+    },
+    sub: {
+      type: String,
+      default: "",
+    },
+    picture: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true },

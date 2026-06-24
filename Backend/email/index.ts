@@ -17,7 +17,9 @@ const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
-    origin: isProduction ? "*" : "http://localhost:5173",
+    origin: isProduction
+      ? "*"
+      : ["http://localhost:5173", "http://192.168.5.28:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: isProduction ? true : true,
   }),

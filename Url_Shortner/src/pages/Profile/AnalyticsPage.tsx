@@ -186,7 +186,7 @@ export const AnalyticsPage = () => {
   if (shoLoader) {
     return (
       <>
-        <div className="flex justify-center items-center bg-sky-50 h-screen">
+        <div className="flex justify-center items-center bg-sky-50 min-h-screen">
           <Spinner className="size-8" />
         </div>
       </>
@@ -195,10 +195,10 @@ export const AnalyticsPage = () => {
 
   return (
     <>
-      <div className="h-screen bg-sky-50 p-5">
+      <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         {showAlert.status ? (
-          <span className="absolute w-full flex items-center justify-center ">
-            <Alert className="w-80 bg-neutral">
+          <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
+            <Alert className="w-full max-w-sm bg-neutral">
               <AlertTitle className="text-lg text-white">
                 {showAlert.title}
               </AlertTitle>
@@ -210,26 +210,26 @@ export const AnalyticsPage = () => {
         ) : null}
 
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl text-primary font-bold cursor-pointer">
-            <span className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
+            <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
               SwiftLink
             </span>
           </h1>
           <Button
             onClick={LogoutFunction}
-            className="bg-transparent text-red-600 text-lg cursor-pointer hover:bg-transparent"
+            className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
           >
             Logout
           </Button>
         </div>
 
-        <div className="h-full p-5 flex flex-col gap-15">
-          <Card className="w-fit min-w-[250px] p-5 rounded-2xl">
+        <div className="p-3 sm:p-5 flex flex-col gap-8 sm:gap-15">
+          <Card className="w-fit min-w-[200px] sm:min-w-[250px] p-4 sm:p-5 rounded-2xl">
             <CardContent className="space-y-2">
               <p className="text-muted-foreground">Link Clicked</p>
 
-              <h1 className="text-5xl font-black text-violet-600">
+              <h1 className="text-4xl sm:text-5xl font-black text-violet-600">
                 {ClickedCount}
               </h1>
 
@@ -237,7 +237,7 @@ export const AnalyticsPage = () => {
             </CardContent>
           </Card>
           <div>
-            <h1 className="text-2xl my-3 font-bold">Details - </h1>
+            <h1 className="text-xl sm:text-2xl my-3 font-bold">Details - </h1>
             <AnalyticsTable data={FetchData} />
           </div>
         </div>

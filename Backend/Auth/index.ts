@@ -16,7 +16,7 @@ app.use(
   cors({
     origin: isProduction
       ? "https://minibaasproject.shubhankarmarathe.online"
-      : "http://localhost:5173",
+      : ["http://localhost:5173", "http://192.168.5.28:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     // allowedHeaders: "*",
     credentials: isProduction ? true : true,

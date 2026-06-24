@@ -6,8 +6,60 @@ import {
   LoginUser,
   updatePassword,
   DeleteAccount,
+  LoginWithGoogle,
+  SignUpWithGoogle,
 } from "./auth.services.ts";
 import axios from "axios";
+
+export async function GoogleSignup(req: Request, res: Response) {
+  try {
+    let { email, name, picture, sub } = req.payload;
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("server error please try again");
+  }
+}
+
+export async function GoogleLogin(req: Request, res: Response) {
+  try {
+    let { email } = req.payload;
+    const isProduction = process.env.NODE_ENV === "production";
+
+    const Login = await LoginWithGoogle({ email: email });
+
+    if (Login.status == false)
+      return res.status(500).send("server error please try again");
+
+    if (Login.message == "user not found")
+      return res.status(401).send("user not found");
+
+    if (Login.status == true && Login.token == undefined)
+      return res.status(500).send("server error please try again");
+
+    let rt = await Login.token?.Signrefresh;
+    let at = await Login.token?.Signaccess;
+
+    res.cookie("refreshToken", rt, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? "none" : "lax",
+    });
+    res.cookie("accessToken", at, {
+      path: "/",
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? "none" : "lax",
+    });
+
+    return res.status(201).send("Login Successful");
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("server error please try again");
+  }
+}
 
 export async function SignupController(req: Request, res: Response) {
   try {
@@ -21,18 +73,24 @@ export async function SignupController(req: Request, res: Response) {
       password: password,
     });
 
-    if (Register.message == "user exist already")
+    if (Register.message == "user exist already") {
+      await RedisCli.del(`${String(req.ip)}Signup`);
       return res.status(401).send("please use different email");
+    }
 
-    if (Register.status == false)
+    if (Register.status == false) {
+      await RedisCli.del(`${String(req.ip)}Signup`);
       return res.status(500).send("server error please try again");
+    }
 
     if (
       Register.token == undefined &&
       Register.status == true &&
       Register.register == true
-    )
+    ) {
+      await RedisCli.del(`${String(req.ip)}Signup`);
       return res.status(302).send(`${Register.message}`);
+    }
 
     let rt = await Register.token?.Signrefresh;
 
@@ -53,6 +111,7 @@ export async function SignupController(req: Request, res: Response) {
       sameSite: isProduction ? "none" : "lax",
     });
 
+    await RedisCli.del(`${String(req.ip)}Signup`);
     return res.status(201).send(`${Register.message}`);
   } catch (error) {
     console.error(error);
@@ -142,15 +201,6 @@ export async function LogoutController(req: Request, res: Response) {
     await RedisCli.del(accesstoken);
 
     return res.status(200).send("logout successful");
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send("server error please try again");
-  }
-}
-
-export async function forgetPasswordController(req: Request, res: Response) {
-  try {
-    axios;
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");

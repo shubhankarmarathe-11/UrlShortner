@@ -11,9 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Mail, Link2, Eye, EyeClosed } from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
-
 import { Spinner } from "@/components/ui/spinner";
 import { ForgetPassword } from "./ForgetPass";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -27,6 +27,27 @@ const Login = () => {
 
   const [shoLoader, SetshowLoader] = useState(true);
   const [showForget, SetshowForget] = useState(false);
+
+  const handleSuccess = async (response: any) => {
+    const google_token = response.credential;
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_AUTH_URL}/api/auth/google/login`,
+        {
+          google_token,
+        },
+        { withCredentials: true },
+      );
+      if (res.status == 201) {
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error("Error:", err);
+    }
+  };
 
   const SubmitLogin = async () => {
     try {
@@ -81,7 +102,7 @@ const Login = () => {
   if (shoLoader) {
     return (
       <>
-        <div className="flex justify-center items-center bg-sky-50 h-screen">
+        <div className="flex justify-center items-center bg-sky-50 min-h-screen">
           <Spinner className="size-8" />
         </div>
       </>
@@ -90,10 +111,10 @@ const Login = () => {
 
   return (
     <>
-      <div className="h-screen bg-sky-50 p-5">
+      <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl text-primary font-bold cursor-pointer">
-            <span className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
+            <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
               SwiftLink
             </span>
@@ -103,7 +124,7 @@ const Login = () => {
               onClick={() => {
                 SetshowForget(false);
               }}
-              className="bg-transparent text-primary text-lg cursor-pointer hover:bg-transparent"
+              className="bg-transparent text-primary text-base sm:text-lg cursor-pointer hover:bg-transparent"
             >
               Back to Login
             </Button>
@@ -112,7 +133,7 @@ const Login = () => {
               onClick={() => {
                 navigate("/");
               }}
-              className="bg-transparent text-primary text-lg cursor-pointer hover:bg-transparent"
+              className="bg-transparent text-primary text-base sm:text-lg cursor-pointer hover:bg-transparent"
             >
               Back to Home
             </Button>
@@ -121,17 +142,17 @@ const Login = () => {
         {showForget ? (
           <ForgetPassword />
         ) : (
-          <div className="my-5 w-full flex justify-center items-center">
-            <Card className="w-xl p-8 flex flex-col items-center">
+          <div className="my-5 w-full flex justify-center items-center px-2">
+            <Card className="w-full max-w-xl p-5 sm:p-8 flex flex-col items-center">
               <CardTitle className="text-center text-2xl text-black font-bold">
                 Welcome Back
               </CardTitle>
-              <CardDescription className="text-center  ">
+              <CardDescription className="text-center">
                 Enter your credentials to access your dashboard
               </CardDescription>
-              <CardContent className="">
+              <CardContent className="w-full">
                 <form
-                  className="flex flex-col "
+                  className="flex flex-col w-full"
                   onSubmit={(e) => {
                     e.preventDefault();
                     SubmitLogin();
@@ -154,7 +175,7 @@ const Login = () => {
                     <span className="flex justify-between">
                       <h1 className="text-left">Password</h1>
                       <h1
-                        className="text-primary cursor-pointer "
+                        className="text-primary cursor-pointer"
                         onClick={() => {
                           SetshowForget(true);
                         }}
@@ -194,25 +215,37 @@ const Login = () => {
                     </h1>
                   </span>
 
-                  <Button className="bg-primary text-white w-96 p-8 cursor-pointer my-3">
+                  <Button className="bg-primary text-white w-full p-8 cursor-pointer my-3">
                     Sign In
                   </Button>
 
                   <h1 className="text-neutral text-center my-3">
                     OR CONTINUE WITH
                   </h1>
-                  <span className="flex justify-center my-3 border border-black rounded-2xl cursor-pointer">
-                    <Button className="cursor-pointer p-6 text-neutral bg-white hover:bg-white">
+                  <span className="flex justify-center my-3 rounded-2xl cursor-pointer">
+                    {/* <Button className="cursor-pointer p-6 text-neutral bg-white hover:bg-white">
                       <Mail />
                       Google
-                    </Button>
+                    </Button> */}
+                    <GoogleOAuthProvider
+                      clientId={`${import.meta.env.VITE_GOOGLE_CLIENT_ID}`}
+                    >
+                      <GoogleLogin
+                        text="signin_with"
+                        size="large"
+                        theme="outline"
+                        width={"auto"}
+                        onSuccess={handleSuccess}
+                        onError={() => {}}
+                      />
+                    </GoogleOAuthProvider>
                   </span>
                 </form>
               </CardContent>
               <h1 className="font-bold">
                 Don't have an account?{" "}
                 <span
-                  className="text-primary cursor-pointer "
+                  className="text-primary cursor-pointer"
                   onClick={() => {
                     navigate("/register");
                   }}

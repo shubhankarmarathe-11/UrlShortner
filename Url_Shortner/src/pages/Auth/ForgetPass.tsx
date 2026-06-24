@@ -115,10 +115,10 @@ export function ForgetPassword() {
 
   return (
     <>
-      <div className="h-screen bg-sky-50 p-5">
+      <div className="py-4 sm:py-5">
         {showAlert.status ? (
-          <span className="absolute w-full flex items-center justify-center ">
-            <Alert className="w-80 bg-neutral">
+          <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
+            <Alert className="w-full max-w-sm bg-neutral">
               <AlertTitle className="text-lg text-white">
                 {showAlert.title}
               </AlertTitle>
@@ -128,17 +128,17 @@ export function ForgetPassword() {
             </Alert>
           </span>
         ) : null}
-        <div className="my-5 w-full flex justify-center items-center">
-          <Card className="w-xl p-8 flex flex-col items-center">
+        <div className="my-5 w-full flex justify-center items-center px-2">
+          <Card className="w-full max-w-xl p-5 sm:p-8 flex flex-col items-center">
             <CardTitle className="text-center text-2xl text-black font-bold">
               Welcome Back
             </CardTitle>
-            <CardDescription className="text-center  ">
+            <CardDescription className="text-center">
               Enter your email to generate otp
             </CardDescription>
-            <CardContent className="">
+            <CardContent className="w-full">
               <form
-                className="flex flex-col w-96"
+                className="flex flex-col w-full"
                 onSubmit={(e) => {
                   e.preventDefault();
                   SendEmail();
@@ -168,7 +168,7 @@ export function ForgetPassword() {
               </form>
 
               <form
-                className="flex flex-col w-96 "
+                className="flex flex-col w-full"
                 onSubmit={(e) => {
                   e.preventDefault();
                   VerifyOTP();
@@ -215,7 +215,7 @@ export function ForgetPassword() {
               </form>
 
               <form
-                className="flex flex-col w-96"
+                className="flex flex-col w-full"
                 onSubmit={(e) => {
                   e.preventDefault();
                   ChangePassword();
