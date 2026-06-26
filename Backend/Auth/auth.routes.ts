@@ -12,6 +12,7 @@ import {
   ChangePasswordController,
   GoogleLogin,
   GoogleSignup,
+  deleteAccount,
 } from "./auth.controller.ts";
 
 const AuthServiceRoute = express.Router();
@@ -42,7 +43,7 @@ AuthServiceRoute.post(
   ChangePasswordController,
 );
 
-AuthServiceRoute.delete("/auth/account", VerifyAccessToken);
+AuthServiceRoute.delete("/auth/account", VerifyAccessToken, deleteAccount);
 
 AuthServiceRoute.get("/auth/isloggedin", VerifyAccessToken, (req, res) => {
   return res.status(200).send("logged in");

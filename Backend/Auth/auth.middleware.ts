@@ -38,6 +38,7 @@ export async function SignupMiddleware(
     Next();
   } catch (error) {
     console.error(error);
+    await RedisCli.del(`${String(req.ip)}Signup`);
     return res.status(500).send("server error please try again");
   }
 }
@@ -110,6 +111,7 @@ export async function VerifyAccessToken(
 
       req.userId = await RedisCli.get(String(refreshtoken));
     }
+    req.userId = await RedisCli.get(String(refreshtoken));
 
     Next();
   } catch (error) {

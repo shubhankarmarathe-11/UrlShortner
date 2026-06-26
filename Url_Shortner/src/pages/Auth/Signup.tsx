@@ -6,13 +6,14 @@ import {
   CardDescription,
   CardTitle,
 } from "@/components/ui/card";
-
 import { Input } from "@/components/ui/input";
 import { isLoggedIn } from "@/store/Loggedin";
-import { Mail, Link2, Eye, EyeClosed } from "lucide-react";
+import { Link2, Eye, EyeClosed } from "lucide-react";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Spinner } from "@/components/ui/spinner";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import axios from "axios";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -20,11 +21,73 @@ const Signup = () => {
   const [auth, Setauth] = useState({ email: "", password: "", username: "" });
   const [showpassword, SetshowPassword] = useState(false);
 
-  const isLogged = isLoggedIn((state) => state.Logged);
-  const SetisLogged = isLoggedIn((state) => state.makeLogged);
-  const SetisLogout = isLoggedIn((state) => state.makeLogout);
+  const isLogged = isLoggedIn((state: any) => state.Logged);
+  const SetisLogged = isLoggedIn((state: any) => state.makeLogged);
+  const SetisLogout = isLoggedIn((state: any) => state.makeLogout);
 
   const [shoLoader, SetshowLoader] = useState(true);
+
+  const [showAlert, SetshowAlert] = useState({
+    status: false,
+    title: "",
+    desc: "",
+  });
+
+  async function ShowAlert(status: boolean, title: string, desc: string) {
+    SetshowAlert({
+      status: status,
+      title: title,
+      desc: desc,
+    });
+    setTimeout(() => {
+      SetshowAlert({ status: false, title: "", desc: "" });
+    }, 4000);
+  }
+
+  const ExistAlreadyInterceptor = async (google_token: string) => {
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_AUTH_URL}/api/auth/google/login`,
+        {
+          google_token,
+        },
+        { withCredentials: true },
+      );
+      if (res.status == 201) {
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      }
+    } catch (error: any) {
+      ShowAlert(true, "Not Found", error.response.data);
+      SetshowLoader(false);
+    }
+  };
+
+  const handleSuccess = async (response: any) => {
+    SetshowLoader(true);
+    const google_token = response.credential;
+
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_AUTH_URL}/api/auth/google/signup`,
+        {
+          google_token,
+        },
+        { withCredentials: true },
+      );
+      if (res.status == 201) {
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      }
+      console.log(res);
+    } catch (error: any) {
+      ShowAlert(true, "Not Found", error.response.data);
+      if (error.response.data == "user exist already")
+        return ExistAlreadyInterceptor(String(google_token));
+    }
+  };
 
   const SubmitSignup = async () => {
     console.log(auth);
@@ -89,6 +152,19 @@ const Signup = () => {
 
   return (
     <>
+      {showAlert.status ? (
+        <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
+          <Alert className="w-full max-w-sm bg-neutral">
+            <AlertTitle className="text-lg text-white">
+              {showAlert.title}
+            </AlertTitle>
+            <AlertDescription className="text-white text-sm">
+              {showAlert.desc}
+            </AlertDescription>
+          </Alert>
+        </span>
+      ) : null}
+
       <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
@@ -122,11 +198,19 @@ const Signup = () => {
                   SubmitSignup();
                 }}
               >
-                <span className="flex justify-center my-3 border border-black rounded-2xl cursor-pointer">
-                  <Button className="cursor-pointer p-6 text-neutral bg-white hover:bg-white">
-                    <Mail />
-                    Google
-                  </Button>
+                <span className="flex justify-center my-3 rounded-2xl cursor-pointer">
+                  <GoogleOAuthProvider
+                    clientId={`${import.meta.env.VITE_GOOGLE_CLIENT_ID}`}
+                  >
+                    <GoogleLogin
+                      text="signup_with"
+                      size="large"
+                      theme="outline"
+                      width={"auto"}
+                      onSuccess={handleSuccess}
+                      onError={() => {}}
+                    />
+                  </GoogleOAuthProvider>
                 </span>
 
                 <h1 className="text-neutral text-center my-3">

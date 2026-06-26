@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { ForgetPassword } from "./ForgetPass";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,7 +29,45 @@ const Login = () => {
   const [shoLoader, SetshowLoader] = useState(true);
   const [showForget, SetshowForget] = useState(false);
 
+  const [showAlert, SetshowAlert] = useState({
+    status: false,
+    title: "",
+    desc: "",
+  });
+
+  async function ShowAlert(status: boolean, title: string, desc: string) {
+    SetshowAlert({
+      status: status,
+      title: title,
+      desc: desc,
+    });
+    setTimeout(() => {
+      SetshowAlert({ status: false, title: "", desc: "" });
+    }, 4000);
+  }
+
+  const NotFoundInterceptor = async (google_token: string) => {
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_AUTH_URL}/api/auth/google/signup`,
+        {
+          google_token,
+        },
+        { withCredentials: true },
+      );
+      if (res.status == 201) {
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 2000);
+      }
+    } catch (error: any) {
+      ShowAlert(true, "Not Found", error.response.data);
+      SetshowLoader(false);
+    }
+  };
+
   const handleSuccess = async (response: any) => {
+    SetshowLoader(true);
     const google_token = response.credential;
 
     try {
@@ -44,8 +83,11 @@ const Login = () => {
           navigate("/dashboard");
         }, 2000);
       }
-    } catch (err: any) {
-      console.error("Error:", err);
+      console.log(res);
+    } catch (error: any) {
+      ShowAlert(true, "Not Found", error.response.data);
+      if (error.response.data == "user not found")
+        return NotFoundInterceptor(String(google_token));
     }
   };
 
@@ -111,6 +153,19 @@ const Login = () => {
 
   return (
     <>
+      {showAlert.status ? (
+        <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
+          <Alert className="w-full max-w-sm bg-neutral">
+            <AlertTitle className="text-lg text-white">
+              {showAlert.title}
+            </AlertTitle>
+            <AlertDescription className="text-white text-sm">
+              {showAlert.desc}
+            </AlertDescription>
+          </Alert>
+        </span>
+      ) : null}
+
       <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">

@@ -22,14 +22,20 @@ export async function CreateEntry(req: Request, res: Response) {
       userId: userId,
     });
 
-    if (Insert.mess == "transaction error")
+    if (Insert.mess == "transaction error") {
+      await RedisCli.del(`${req.ip}newentry`);
       return res.status(500).send("server error please try again");
-    if (Insert.mess == "not connected")
+    }
+    if (Insert.mess == "not connected") {
+      await RedisCli.del(`${req.ip}newentry`);
       return res.status(500).send("server error please try again");
+    }
 
+    await RedisCli.del(`${req.ip}newentry`);
     return res.status(201).send(Insert.mess);
   } catch (error) {
     console.error(error);
+    await RedisCli.del(`${req.ip}newentry`);
     return res.status(500).send("server error please try again");
   }
 }

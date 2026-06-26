@@ -32,6 +32,8 @@ const Dashboard = () => {
     datetime: "",
   });
 
+  const [reload, Setreload] = useState(true);
+
   const [FetchedLinks, SetFetchedLinks] = useState([]);
 
   async function ShowAlert(status: boolean, title: string, desc: string) {
@@ -45,6 +47,18 @@ const Dashboard = () => {
     }, 4000);
   }
 
+  async function DeleteAccountFunction() {
+    try {
+      let res = await axios.delete(
+        `${import.meta.env.VITE_AUTH_URL}/api/auth/account`,
+        { withCredentials: true },
+      );
+
+      if (res.data == "user deleted") return navigate("/sign-in");
+    } catch (error: any) {
+      ShowAlert(true, "please try again", error.response.data);
+    }
+  }
   async function LogoutFunction() {
     try {
       let res = await axios.post(
@@ -93,9 +107,10 @@ const Dashboard = () => {
         },
         { withCredentials: true },
       );
-      console.log(res);
+      if (res.status == 201) {
+        Setreload(!reload);
+      }
     } catch (error: any) {
-      console.log(error);
       ShowAlert(true, "please try again", error.response.data);
     }
   }
@@ -113,7 +128,7 @@ const Dashboard = () => {
       console.log(res.data.data);
       SetFetchedLinks(res.data.data);
     } catch (error: any) {
-      if (error.response.data == "no data available")
+      if (error.response.data != "no data available")
         ShowAlert(true, "Data not found", error.response.data);
     }
   }
@@ -128,7 +143,6 @@ const Dashboard = () => {
       );
       console.log(res);
     } catch (error: any) {
-      console.log(error);
       ShowAlert(true, "please try again", error.response.data);
     }
   }
@@ -139,7 +153,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     GetActiveLinksFunction();
-  }, []);
+  }, [reload]);
 
   if (shoLoader) {
     return (
@@ -175,6 +189,14 @@ const Dashboard = () => {
               SwiftLink
             </span>
           </h1>
+          <span>
+            <Button
+              onClick={DeleteAccountFunction}
+              className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
+            >
+              Delete Account
+            </Button>
+          </span>
           <Button
             onClick={LogoutFunction}
             className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
@@ -236,96 +258,102 @@ const Dashboard = () => {
             Active Links
           </h1>
           <span className="flex flex-col gap-5 my-8 sm:my-14 items-center justify-center px-0 sm:px-4">
-            {FetchedLinks.map((data) => {
-              return (
-                <div key={data._id} className="w-full max-w-4xl">
-                  <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-3 sm:p-5 bg-card">
-                    <CardContent className="space-y-4 sm:space-y-5">
-                      {/* Long URL */}
-                      <div>
-                        <p className="text-sm text-muted-foreground font-medium">
-                          Long URL
-                        </p>
-
-                        <p className="truncate text-base mt-1">
-                          {data.LongUrl}
-                        </p>
-                      </div>
-
-                      {/* Slug + Expiry */}
-                      <div className="flex flex-wrap gap-4 sm:gap-5 items-center">
-                        <div className="flex flex-col">
-                          <p className="text-sm text-muted-foreground">Slug</p>
-
-                          <span className="font-semibold text-lg">
-                            {data.Slug}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-col">
-                          <p className="text-sm text-muted-foreground">
-                            Expire At
+            {FetchedLinks.length == 0 ? (
+              <h1 className="text-center text-lg my-5">No Data Found</h1>
+            ) : (
+              FetchedLinks.map((data) => {
+                return (
+                  <div key={data._id} className="w-full max-w-4xl">
+                    <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-3 sm:p-5 bg-card">
+                      <CardContent className="space-y-4 sm:space-y-5">
+                        {/* Long URL */}
+                        <div>
+                          <p className="text-sm text-muted-foreground font-medium">
+                            Long URL
                           </p>
 
-                          <span className="rounded-full w-fit px-3 py-1 bg-red-100 text-red-600 text-sm">
-                            {new Date(data.expireAt).toLocaleString()}
-                          </span>
+                          <p className="truncate text-base mt-1">
+                            {data.LongUrl}
+                          </p>
                         </div>
-                      </div>
 
-                      <span className="flex flex-wrap items-center gap-3 sm:gap-8">
-                        <Button
-                          className="bg-green-600 cursor-pointer text-sm sm:text-base"
-                          onClick={() => {
-                            navigate(`/dashboard/${data.LinkAnalytics[0]}`);
-                          }}
-                        >
-                          View Analytics
-                        </Button>
-                        <Button
-                          className="bg-red-600 cursor-pointer text-sm sm:text-base"
-                          onClick={() => {
-                            DeleteLinkFunction(data._id);
-                          }}
-                        >
-                          Delete
-                        </Button>
-                      </span>
+                        {/* Slug + Expiry */}
+                        <div className="flex flex-wrap gap-4 sm:gap-5 items-center">
+                          <div className="flex flex-col">
+                            <p className="text-sm text-muted-foreground">
+                              Slug
+                            </p>
 
-                      {/* Short URL */}
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Short Link
-                        </p>
+                            <span className="font-semibold text-lg">
+                              {data.Slug}
+                            </span>
+                          </div>
 
-                        <div className="flex items-center justify-between gap-2 sm:gap-3 border rounded-xl p-2 sm:p-3 overflow-hidden">
-                          <Link
-                            to={`${
-                              import.meta.env.VITE_SHORT_URL
-                            }/${data.UserId}/${data.Slug}`}
-                            className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
-                          >
-                            {import.meta.env.VITE_SHORT_URL}/{data.UserId}/
-                            {data.Slug}
-                          </Link>
+                          <div className="flex flex-col">
+                            <p className="text-sm text-muted-foreground">
+                              Expire At
+                            </p>
 
-                          <button
-                            onClick={() =>
-                              navigator.clipboard.writeText(
-                                `${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`,
-                              )
-                            }
-                            className="shrink-0 px-2 sm:px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition text-xs sm:text-sm"
-                          >
-                            Copy
-                          </button>
+                            <span className="rounded-full w-fit px-3 py-1 bg-red-100 text-red-600 text-sm">
+                              {new Date(data.expireAt).toLocaleString()}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              );
-            })}
+
+                        <span className="flex flex-wrap items-center gap-3 sm:gap-8">
+                          <Button
+                            className="bg-green-600 cursor-pointer text-sm sm:text-base"
+                            onClick={() => {
+                              navigate(`/dashboard/${data.LinkAnalytics[0]}`);
+                            }}
+                          >
+                            View Analytics
+                          </Button>
+                          <Button
+                            className="bg-red-600 cursor-pointer text-sm sm:text-base"
+                            onClick={() => {
+                              DeleteLinkFunction(data._id);
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </span>
+
+                        {/* Short URL */}
+                        <div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Short Link
+                          </p>
+
+                          <div className="flex items-center justify-between gap-2 sm:gap-3 border rounded-xl p-2 sm:p-3 overflow-hidden">
+                            <Link
+                              to={`${
+                                import.meta.env.VITE_SHORT_URL
+                              }/${data.UserId}/${data.Slug}`}
+                              className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
+                            >
+                              {import.meta.env.VITE_SHORT_URL}/{data.UserId}/
+                              {data.Slug}
+                            </Link>
+
+                            <button
+                              onClick={() =>
+                                navigator.clipboard.writeText(
+                                  `${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`,
+                                )
+                              }
+                              className="shrink-0 px-2 sm:px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition text-xs sm:text-sm"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })
+            )}
           </span>
         </div>
       </div>

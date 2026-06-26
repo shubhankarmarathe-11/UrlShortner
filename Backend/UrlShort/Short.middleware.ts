@@ -12,6 +12,8 @@ export async function VerifyAccessToken(
 
     req.userId = await RedisCli.get(String(refreshtoken));
 
+    if (req.userId == null) return res.status(500).send("token expired");
+
     Next();
   } catch (error) {
     console.error(error);
@@ -27,16 +29,25 @@ export async function CreateNewEntryMiddleware(
   try {
     let { slug, longlink, expiretime } = req.body;
 
-    if (slug == "" || longlink == "" || expiretime == "")
+    if ((await RedisCli.get(`${req.ip}newentry`)) != null)
+      return res.status(401).send("in progress please wait");
+
+    await RedisCli.set(`${req.ip}newentry`, "true");
+
+    if (slug == "" || longlink == "" || expiretime == "") {
+      await RedisCli.del(`${req.ip}newentry`);
       return res.status(401).send(" please enter the proper details");
+    }
 
     const findslug = await RedisCli.get(`${slug}`);
 
     if (findslug == null) return Next();
 
+    await RedisCli.del(`${req.ip}newentry`);
     return res.status(401).send("please select another name for url");
   } catch (error) {
     console.error(error);
+    await RedisCli.del(`${req.ip}newentry`);
     return res.status(500).send("server error please try again");
   }
 }

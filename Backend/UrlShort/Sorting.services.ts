@@ -87,8 +87,6 @@ export async function GetAllLinks({ userId }: { userId: string }) {
     return { status: true, mess: "Data Found", data: Fetch };
   } catch (error) {
     console.error(error);
-    await session.abortTransaction();
-    await session.endSession();
     return { status: false, mess: "transaction error", data: null };
   }
 }

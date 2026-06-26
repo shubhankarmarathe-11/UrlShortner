@@ -3,13 +3,31 @@ import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { SignToken } from "./utils/GenerateToken.ts";
 import { RedisCli } from "./config/redis.ts";
+import { db, client } from "./config/mongoconfig.ts";
+import { ObjectId } from "mongodb";
 
-export async function LoginWithGoogle({ email }: { email: string }) {
+export async function LoginWithGoogle({
+  email,
+  name,
+  picture,
+  sub,
+}: {
+  email: string;
+  name: string;
+  picture: string;
+  sub: string;
+}) {
   try {
     const finduser = await UserModel.findOne({ Email: email });
 
     if (finduser == null)
       return { status: true, message: "user not found", token: undefined };
+
+    if (finduser.picture == "" || finduser.sub == "") {
+      finduser.picture = await picture;
+      finduser.sub = await sub;
+      await finduser.save();
+    }
 
     let sessionId = await uuidv4();
 
@@ -100,13 +118,18 @@ export async function SignUpWithGoogle({
       };
 
     await RedisCli.set(
-      `${token.Signrefresh}`,
-      `${token.Signrefresh}`,
+      `${await token.Signrefresh}`,
+      `${Register._id}`,
       "EX",
       604800,
     );
 
-    await RedisCli.set(`${token.Signaccess}`, `${token.Signaccess}`, "EX", 900);
+    await RedisCli.set(
+      `${await token.Signaccess}`,
+      `${Register._id}`,
+      "EX",
+      900,
+    );
 
     return {
       status: true,
@@ -169,13 +192,18 @@ export async function RegisterUser({
       };
 
     await RedisCli.set(
-      `${token.Signrefresh}`,
-      `${token.Signrefresh}`,
+      `${await token.Signrefresh}`,
+      `${Register._id}`,
       "EX",
       604800,
     );
 
-    await RedisCli.set(`${token.Signaccess}`, `${token.Signaccess}`, "EX", 900);
+    await RedisCli.set(
+      `${await token.Signaccess}`,
+      `${Register._id}`,
+      "EX",
+      900,
+    );
 
     return {
       status: true,
@@ -195,19 +223,38 @@ export async function RegisterUser({
 }
 
 export async function DeleteAccount({ userId }: { userId: string }) {
+  const urlcolletion = await db.collection("urlmodels");
+  const urlanalyticcollection = await db.collection("linkanalyticsmodels");
+  const usercollection = await db.collection("usermodels");
+
+  const session = client.startSession();
   try {
-    let deleteUser = await UserModel.deleteOne({ _id: userId });
+    session.startTransaction();
 
-    if (deleteUser.acknowledged == false)
-      return { status: false, message: "please try again" };
+    await usercollection.deleteOne(
+      { _id: new ObjectId(userId) },
+      { session: session },
+    );
 
-    if (deleteUser.deletedCount == 0)
-      return { status: false, message: "please try again" };
+    await urlcolletion.deleteMany(
+      { UserId: new ObjectId(userId) },
+      { session: session },
+    );
 
-    return { status: true, message: "user Deleted" };
+    await urlanalyticcollection.deleteMany(
+      { userId: new ObjectId(userId) },
+      { session: session },
+    );
+
+    session.commitTransaction();
+    session.endSession();
+
+    return { status: true, mess: "Account Deleted" };
   } catch (error) {
     console.error(error);
-    return { status: false, message: "please try again" };
+    await session.abortTransaction();
+    await session.endSession();
+    return { status: false, mess: "transaction error" };
   }
 }
 

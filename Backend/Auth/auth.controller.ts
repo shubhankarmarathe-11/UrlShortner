@@ -9,11 +9,57 @@ import {
   LoginWithGoogle,
   SignUpWithGoogle,
 } from "./auth.services.ts";
-import axios from "axios";
 
 export async function GoogleSignup(req: Request, res: Response) {
   try {
     let { email, name, picture, sub } = req.payload;
+    const isProduction = process.env.NODE_ENV === "production";
+
+    const Register = await SignUpWithGoogle({
+      email: email,
+      name: name,
+      picture: picture,
+      sub: sub,
+    });
+
+    console.log(Register);
+
+    if (Register.message == "user exist already") {
+      return res.status(401).send("user exist already");
+    }
+
+    if (Register.status == false) {
+      return res.status(500).send("server error please try again");
+    }
+
+    if (
+      Register.token == undefined &&
+      Register.status == true &&
+      Register.register == true
+    ) {
+      return res.status(302).send(`${Register.message}`);
+    }
+
+    let rt = await Register.token?.Signrefresh;
+
+    let at = await Register.token?.Signaccess;
+
+    res.cookie("refreshToken", rt, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? "none" : "lax",
+    });
+    res.cookie("accessToken", at, {
+      path: "/",
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction ? true : false,
+      sameSite: isProduction ? "none" : "lax",
+    });
+
+    return res.status(201).send(`${Register.message}`);
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");
@@ -22,10 +68,16 @@ export async function GoogleSignup(req: Request, res: Response) {
 
 export async function GoogleLogin(req: Request, res: Response) {
   try {
-    let { email } = req.payload;
+    let { email, name, picture, sub } = await req.payload;
+
     const isProduction = process.env.NODE_ENV === "production";
 
-    const Login = await LoginWithGoogle({ email: email });
+    const Login = await LoginWithGoogle({
+      email: email,
+      name: name,
+      picture: picture,
+      sub: sub,
+    });
 
     if (Login.status == false)
       return res.status(500).send("server error please try again");
@@ -96,6 +148,9 @@ export async function SignupController(req: Request, res: Response) {
 
     let at = await Register.token?.Signaccess;
 
+    console.log(at);
+    console.log("rt", rt);
+
     res.cookie("refreshToken", rt, {
       path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
@@ -115,6 +170,7 @@ export async function SignupController(req: Request, res: Response) {
     return res.status(201).send(`${Register.message}`);
   } catch (error) {
     console.error(error);
+    await RedisCli.del(`${String(req.ip)}Signup`);
     return res.status(500).send("server error please try again");
   }
 }
@@ -191,6 +247,10 @@ export async function LoginController(req: Request, res: Response) {
 
 export async function LogoutController(req: Request, res: Response) {
   try {
+    if ((await RedisCli.get(`${req.ip}logout`)) != null)
+      return res.status(401).send("in progress please wait");
+
+    await RedisCli.set(`${req.ip}logout`, "true");
     let refreshtoken = req.cookies["refreshToken"];
     let accesstoken = req.cookies["accessToken"];
 
@@ -200,6 +260,7 @@ export async function LogoutController(req: Request, res: Response) {
     await RedisCli.del(refreshtoken);
     await RedisCli.del(accesstoken);
 
+    await RedisCli.del(`${req.ip}logout`);
     return res.status(200).send("logout successful");
   } catch (error) {
     console.error(error);
@@ -246,13 +307,20 @@ export async function ChangePasswordController(req: Request, res: Response) {
 
 export async function deleteAccount(req: Request, res: Response) {
   try {
+    if ((await RedisCli.get(`${req.ip}delaccount`)) != null)
+      return res.status(401).send("in progress please wait");
+
+    await RedisCli.set(`${req.ip}delaccount`, "true");
+
     let refreshtoken = req.cookies["refreshToken"];
     let accesstoken = req.cookies["accessToken"];
 
     const Delete = await DeleteAccount({ userId: String(req.userId) });
 
-    if (Delete.message == "please try again")
+    if (Delete.status == false) {
+      await RedisCli.del(`${req.ip}delaccount`);
       return res.status(500).send("server error please try again");
+    }
 
     await res.clearCookie("refreshToken");
     await res.clearCookie("accessToken");
@@ -260,6 +328,7 @@ export async function deleteAccount(req: Request, res: Response) {
     await RedisCli.del(refreshtoken);
     await RedisCli.del(accesstoken);
 
+    await RedisCli.del(`${req.ip}delaccount`);
     return res.status(200).send("user deleted");
   } catch (error) {
     console.error(error);
