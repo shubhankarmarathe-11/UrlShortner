@@ -98,9 +98,9 @@ export const AnalyticsPage = () => {
 
   let { _id } = useParams();
 
-  const isLogged = isLoggedIn((state) => state.Logged);
-  const SetisLogged = isLoggedIn((state) => state.makeLogged);
-  const SetisLogout = isLoggedIn((state) => state.makeLogout);
+  // const isLogged = isLoggedIn((state: any) => state.Logged);
+  const SetisLogged = isLoggedIn((state: any) => state.makeLogged);
+  const SetisLogout = isLoggedIn((state: any) => state.makeLogout);
 
   const [shoLoader, SetshowLoader] = useState(true);
 

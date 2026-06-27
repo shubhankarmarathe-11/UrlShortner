@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { isLoggedIn } from "@/store/Loggedin";
 import { Input } from "@/components/ui/input";
-import { Mail, Link2, Eye, EyeClosed } from "lucide-react";
+import { Link2, Eye, EyeClosed } from "lucide-react";
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
@@ -22,9 +22,9 @@ const Login = () => {
   const [auth, Setauth] = useState({ email: "", password: "" });
   const [showpassword, SetshowPassword] = useState(false);
 
-  const isLogged = isLoggedIn((state) => state.Logged);
-  const SetisLogged = isLoggedIn((state) => state.makeLogged);
-  const SetisLogout = isLoggedIn((state) => state.makeLogout);
+  const isLogged = isLoggedIn((state: any) => state.Logged);
+  const SetisLogged = isLoggedIn((state: any) => state.makeLogged);
+  const SetisLogout = isLoggedIn((state: any) => state.makeLogout);
 
   const [shoLoader, SetshowLoader] = useState(true);
   const [showForget, SetshowForget] = useState(false);

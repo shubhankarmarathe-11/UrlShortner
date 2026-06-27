@@ -12,9 +12,9 @@ import { Card, CardContent } from "@/components/ui/card";
 const Dashboard = () => {
   const navigate = useNavigate();
 
-  const isLogged = isLoggedIn((state) => state.Logged);
-  const SetisLogged = isLoggedIn((state) => state.makeLogged);
-  const SetisLogout = isLoggedIn((state) => state.makeLogout);
+  // const isLogged = isLoggedIn((state) => state.Logged);
+  const SetisLogged = isLoggedIn((state: any) => state.makeLogged);
+  const SetisLogout = isLoggedIn((state: any) => state.makeLogout);
 
   const blockOlddate = new Date().toISOString().slice(0, 16);
 
@@ -261,7 +261,7 @@ const Dashboard = () => {
             {FetchedLinks.length == 0 ? (
               <h1 className="text-center text-lg my-5">No Data Found</h1>
             ) : (
-              FetchedLinks.map((data) => {
+              FetchedLinks.map((data: any) => {
                 return (
                   <div key={data._id} className="w-full max-w-4xl">
                     <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-3 sm:p-5 bg-card">
