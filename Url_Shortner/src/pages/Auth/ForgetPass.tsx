@@ -47,7 +47,6 @@ export function ForgetPassword() {
         { withCredentials: true },
       );
 
-      console.log(res.data);
       if (res.data == "email sent please check your spam also") {
         SetshowOtpField(true);
         SetshowTimer({ ...showTimer, show: true, timer: showTimer.timer - 1 });
@@ -96,8 +95,6 @@ export function ForgetPassword() {
         }, 5000);
       }
     } catch (error: any) {
-      console.log(error);
-
       ShowAlert(true, "please try again", error.response.data);
     }
   }

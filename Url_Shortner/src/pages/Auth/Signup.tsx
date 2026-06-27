@@ -81,7 +81,6 @@ const Signup = () => {
           navigate("/dashboard");
         }, 2000);
       }
-      console.log(res);
     } catch (error: any) {
       ShowAlert(true, "Not Found", error.response.data);
       if (error.response.data == "user exist already")
@@ -90,8 +89,7 @@ const Signup = () => {
   };
 
   const SubmitSignup = async () => {
-    console.log(auth);
-
+    SetshowLoader(true);
     try {
       const res = await axios.post(
         `${import.meta.env.VITE_AUTH_URL}/api/auth/signup`,
@@ -107,8 +105,9 @@ const Signup = () => {
         SetisLogged();
         navigate("/dashboard");
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      SetshowLoader(false);
+      ShowAlert(true, "Login Error", error.response.data);
     }
   };
 
@@ -118,8 +117,6 @@ const Signup = () => {
         `${import.meta.env.VITE_AUTH_URL}/api/auth/isloggedin`,
         { withCredentials: true },
       );
-
-      console.log(res.data);
 
       if (res.status == 200) {
         SetisLogged();

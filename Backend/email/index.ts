@@ -5,8 +5,6 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import { EmailServiceRoute } from "./email.routes.ts";
 
-import { subscribe } from "./config/sub.ts";
-import { publisher } from "./config/pub.ts";
 
 dotenv.config();
 

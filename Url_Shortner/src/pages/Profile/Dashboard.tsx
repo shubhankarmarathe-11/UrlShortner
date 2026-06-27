@@ -125,7 +125,6 @@ const Dashboard = () => {
         `${import.meta.env.VITE_SHORT_URL}/api/short/link`,
         { withCredentials: true },
       );
-      console.log(res.data.data);
       SetFetchedLinks(res.data.data);
     } catch (error: any) {
       if (error.response.data != "no data available")
@@ -141,7 +140,6 @@ const Dashboard = () => {
         `${import.meta.env.VITE_SHORT_URL}/api/short/link/${link}`,
         { withCredentials: true },
       );
-      console.log(res);
     } catch (error: any) {
       ShowAlert(true, "please try again", error.response.data);
     }

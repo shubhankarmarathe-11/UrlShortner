@@ -83,7 +83,6 @@ const Login = () => {
           navigate("/dashboard");
         }, 2000);
       }
-      console.log(res);
     } catch (error: any) {
       ShowAlert(true, "Not Found", error.response.data);
       if (error.response.data == "user not found")
@@ -108,8 +107,9 @@ const Login = () => {
           navigate("/dashboard");
         }, 2000);
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      SetshowLoader(false);
+      ShowAlert(true, "Login Error", error.response.data);
     }
   };
 
@@ -119,8 +119,6 @@ const Login = () => {
         `${import.meta.env.VITE_AUTH_URL}/api/auth/isloggedin`,
         { withCredentials: true },
       );
-
-      console.log(res.data);
 
       if (res.status == 200) {
         SetisLogged();
