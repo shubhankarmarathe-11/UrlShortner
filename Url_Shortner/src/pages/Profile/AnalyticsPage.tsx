@@ -62,7 +62,7 @@ function AnalyticsTable({ data }: { data: Analytics[] }) {
                 <div>
                   <p className="font-medium">{item.browser}</p>
 
-                  <p className="text-xs text-muted-foreground truncate max-w-[250px]">
+                  <p className="text-xs text-muted-foreground truncate max-w-62.5">
                     {item.userAgent}
                   </p>
                 </div>
@@ -77,9 +77,7 @@ function AnalyticsTable({ data }: { data: Analytics[] }) {
               </TableCell>
 
               <TableCell>
-                <div className="truncate max-w-[180px]">
-                  {item.referer || "-"}
-                </div>
+                <div className="truncate max-w-45">{item.referer || "-"}</div>
               </TableCell>
 
               <TableCell>
@@ -225,7 +223,7 @@ export const AnalyticsPage = () => {
         </div>
 
         <div className="p-3 sm:p-5 flex flex-col gap-8 sm:gap-15">
-          <Card className="w-fit min-w-[200px] sm:min-w-[250px] p-4 sm:p-5 rounded-2xl">
+          <Card className="w-fit min-w-50 sm:min-w-62.5 p-4 sm:p-5 rounded-2xl">
             <CardContent className="space-y-2">
               <p className="text-muted-foreground">Link Clicked</p>
 
