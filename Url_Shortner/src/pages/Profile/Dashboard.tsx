@@ -186,7 +186,7 @@ const Dashboard = () => {
           <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
             <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
-              SwiftLink
+              UrlShortner
             </span>
           </h1>
           <span>

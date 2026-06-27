@@ -42,7 +42,7 @@ export function ForgetPassword() {
         {
           email: auth.email,
           type: "otp",
-          data: { appName: "SwiftLink" },
+          data: { appName: "UrlShortner" },
         },
         { withCredentials: true },
       );

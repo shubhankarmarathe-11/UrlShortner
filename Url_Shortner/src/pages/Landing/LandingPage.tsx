@@ -12,7 +12,7 @@ const LandingPage = () => {
           <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
             <span className="flex items-center gap-2 sm:gap-3">
               <Link2 />
-              SwiftLink
+              UrlShortner
             </span>
           </h1>
 
@@ -59,7 +59,9 @@ const LandingPage = () => {
 
           <div className="flex p-3 justify-center items-center gap-2 flex-col w-full my-6 sm:my-10">
             <h1 className="font-bold text-2xl">How it works</h1>
-            <p className="text-center">Three simple steps to maximize your digital impact</p>
+            <p className="text-center">
+              Three simple steps to maximize your digital impact
+            </p>
 
             <div className="flex flex-col sm:flex-row justify-between w-full my-6 sm:my-10 gap-4 sm:gap-3">
               <span className="bg-white rounded-2xl p-5 flex flex-col gap-5 items-center justify-center flex-1">
