@@ -140,6 +140,9 @@ const Dashboard = () => {
         `${import.meta.env.VITE_SHORT_URL}/api/short/link/${link}`,
         { withCredentials: true },
       );
+      if (res.status == 201) {
+        Setreload(!reload);
+      }
     } catch (error: any) {
       ShowAlert(true, "please try again", error.response.data);
     }
