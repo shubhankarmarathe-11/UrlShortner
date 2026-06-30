@@ -125,10 +125,13 @@ const Dashboard = () => {
         `${import.meta.env.VITE_SHORT_URL}/api/short/link`,
         { withCredentials: true },
       );
+
       SetFetchedLinks(res.data.data);
     } catch (error: any) {
-      if (error.response.data != "no data available")
+      if (error.response.data != "no data available") {
         ShowAlert(true, "Data not found", error.response.data);
+        SetFetchedLinks([]);
+      }
     }
   }
 
@@ -140,6 +143,7 @@ const Dashboard = () => {
         `${import.meta.env.VITE_SHORT_URL}/api/short/link/${link}`,
         { withCredentials: true },
       );
+
       if (res.status == 201) {
         Setreload(!reload);
       }
@@ -328,25 +332,15 @@ const Dashboard = () => {
 
                           <div className="flex items-center justify-between gap-2 sm:gap-3 border rounded-xl p-2 sm:p-3 overflow-hidden">
                             <Link
-                              to={`${
-                                import.meta.env.VITE_SHORT_URL
+                              to={`${import.meta.env.VITE_HOST_URL}/${
+                                import.meta.env.VITE_REDIRECT_URL
                               }/${data.UserId}/${data.Slug}`}
                               className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
                             >
-                              {import.meta.env.VITE_SHORT_URL}/{data.UserId}/
+                              {import.meta.env.VITE_HOST_URL}/
+                              {import.meta.env.VITE_REDIRECT_URL}/{data.UserId}/
                               {data.Slug}
                             </Link>
-
-                            <button
-                              onClick={() =>
-                                navigator.clipboard.writeText(
-                                  `${import.meta.env.VITE_REDIRECT_URL}/${data.UserId}/${data.Slug}`,
-                                )
-                              }
-                              className="shrink-0 px-2 sm:px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition text-xs sm:text-sm"
-                            >
-                              Copy
-                            </button>
                           </div>
                         </div>
                       </CardContent>
