@@ -340,7 +340,7 @@ const Dashboard = () => {
                             <button
                               onClick={() =>
                                 navigator.clipboard.writeText(
-                                  `${import.meta.env.VITE_SHORT_URL}/${data.UserId}/${data.Slug}`,
+                                  `${import.meta.env.VITE_REDIRECT_URL}/${data.UserId}/${data.Slug}`,
                                 )
                               }
                               className="shrink-0 px-2 sm:px-3 py-2 rounded-lg bg-violet-600 text-white hover:scale-105 transition text-xs sm:text-sm"

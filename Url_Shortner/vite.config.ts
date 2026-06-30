@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     host: true,
+    allowedHosts: ["frontend.sortlink.online"],
   },
   resolve: {
     alias: {
