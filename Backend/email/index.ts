@@ -5,7 +5,6 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import { EmailServiceRoute } from "./email.routes.ts";
 
-
 dotenv.config();
 
 const app = express();
@@ -16,7 +15,7 @@ const isProduction = process.env.NODE_ENV === "production";
 app.use(
   cors({
     origin: isProduction
-      ? "*"
+      ? "https://frontend.sortlink.online"
       : ["http://localhost:5173", "http://192.168.5.28:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: isProduction ? true : true,

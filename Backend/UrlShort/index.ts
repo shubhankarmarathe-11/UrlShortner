@@ -9,16 +9,15 @@ import { SortingRoute } from "./SortingRoute.ts";
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT) || 3004;
+const port = parseInt(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   cors({
     origin: isProduction
-      ? "https://minibaasproject.shubhankarmarathe.online"
+      ? "https://frontend.sortlink.online"
       : ["http://localhost:5173", "http://192.168.5.28:5173"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    // allowedHeaders: "*",
     credentials: isProduction ? true : true,
   }),
 );
