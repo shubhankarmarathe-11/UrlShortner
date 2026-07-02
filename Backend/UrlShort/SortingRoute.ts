@@ -29,7 +29,11 @@ SortingRoute.get(
   FetchAnalyticsController,
 );
 
-SortingRoute.get("/:userid/:slug", RedirectMiddleware, RedirectController);
+SortingRoute.get(
+  "/api/short/:userid/:slug",
+  RedirectMiddleware,
+  RedirectController,
+);
 
 SortingRoute.delete(
   "/api/short/link/:link_id",
