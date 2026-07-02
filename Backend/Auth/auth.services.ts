@@ -363,3 +363,32 @@ export async function updatePassword({
     return { status: false, message: "please try again" };
   }
 }
+
+// export async function IsUserExit({ userId }: { userId: string }) {
+//   try {
+//   } catch (error) {
+//     console.error(error);
+//     return { status: false, mess: "db error" };
+//   }
+// }
+
+export async function CacheUserInfo() {
+  try {
+    const FetchAll = await UserModel.find().projection({
+      _id: 1,
+      Username: 0,
+      Email: 0,
+      Password: 0,
+      role: 0,
+      sub: 0,
+      picture: 0,
+      __v: 0,
+    });
+    await RedisCli.set("existusers", JSON.stringify(FetchAll));
+
+    return { status: true, mess: "done" };
+  } catch (error) {
+    console.error(error);
+    return { status: false, mess: "db error" };
+  }
+}

@@ -3,6 +3,7 @@ import { AUTH_REGEX } from "./utils/FormatCheckers.ts";
 import type { Request, Response, NextFunction } from "express";
 import { SignAccessToken, VerifyToken } from "./utils/GenerateToken.ts";
 import { OAuth2Client } from "google-auth-library";
+import { CacheUserInfo } from "./auth.services.ts";
 
 export async function SignupMiddleware(
   req: Request,
@@ -82,6 +83,38 @@ export async function VerifyAccessToken(
     }
 
     let ttl2 = await RedisCli.ttl(`${accesstoken}`);
+
+    let FetchArray: any = await RedisCli.get("existusers");
+
+    if (FetchArray == null) {
+      const FetchByService = await CacheUserInfo();
+      if (FetchByService.status == false) {
+        await res.clearCookie("refreshToken");
+        await res.clearCookie("accessToken");
+
+        return res.status(401).send("refresh token expired");
+      }
+    }
+
+    FetchArray = await RedisCli.get("existusers");
+
+    if (JSON.parse(FetchArray).length == 0) {
+      await res.clearCookie("refreshToken");
+      await res.clearCookie("accessToken");
+
+      return res.status(401).send("refresh token expired");
+    }
+
+    if (
+      Array(JSON.parse(FetchArray)).some(
+        (val) => String(val._id) == String(verifyRefresh.payload.userId),
+      ) == false
+    ) {
+      await res.clearCookie("refreshToken");
+      await res.clearCookie("accessToken");
+
+      return res.status(401).send("refresh token expired");
+    }
 
     if (!accesstoken || ttl2 <= 10) {
       let SignAccess = await SignAccessToken({
