@@ -104,11 +104,11 @@ export async function VerifyAccessToken(
       return res.status(401).send("refresh token expired");
     }
 
-    if (
-      JSON.parse(FetchArray).some(
-        (val: any) => val._id == String(verifyRefresh.payload.userId),
-      ) == false
-    ) {
+    const FindInRedisArray: any = await JSON.parse(FetchArray).some(
+      (val: any) => val._id == String(verifyRefresh.payload.userId),
+    );
+
+    if (FindInRedisArray == false) {
       await res.clearCookie("refreshToken");
       await res.clearCookie("accessToken");
 

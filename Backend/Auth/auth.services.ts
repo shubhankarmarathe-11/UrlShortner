@@ -134,8 +134,9 @@ export async function SignUpWithGoogle({
     let FetchUserexist = await RedisCli.get("existusers");
 
     if (FetchUserexist != null) {
-      await JSON.parse(FetchUserexist).push(Register);
-      await RedisCli.set("existusers", JSON.stringify(FetchUserexist));
+      let users = await JSON.parse(FetchUserexist);
+      await users.push(Register);
+      await RedisCli.set("existusers", JSON.stringify(users));
     }
 
     return {
@@ -215,8 +216,9 @@ export async function RegisterUser({
     let FetchUserexist = await RedisCli.get("existusers");
 
     if (FetchUserexist != null) {
-      await JSON.parse(FetchUserexist).push(Register);
-      await RedisCli.set("existusers", JSON.stringify(FetchUserexist));
+      let users = await JSON.parse(FetchUserexist);
+      await users.push(Register);
+      await RedisCli.set("existusers", JSON.stringify(users));
     }
 
     return {
