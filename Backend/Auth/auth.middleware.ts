@@ -82,8 +82,6 @@ export async function VerifyAccessToken(
       return res.status(401).send("refresh token expired");
     }
 
-    let ttl2 = await RedisCli.ttl(`${accesstoken}`);
-
     let FetchArray: any = await RedisCli.get("existusers");
 
     if (FetchArray == null) {
@@ -94,11 +92,12 @@ export async function VerifyAccessToken(
 
         return res.status(401).send("refresh token expired");
       }
+      FetchArray = await RedisCli.get("existusers");
     }
 
-    FetchArray = await RedisCli.get("existusers");
-
     if (JSON.parse(FetchArray).length == 0) {
+      console.log("len");
+
       await res.clearCookie("refreshToken");
       await res.clearCookie("accessToken");
 
@@ -106,8 +105,8 @@ export async function VerifyAccessToken(
     }
 
     if (
-      Array(JSON.parse(FetchArray)).some(
-        (val) => String(val._id) == String(verifyRefresh.payload.userId),
+      JSON.parse(FetchArray).some(
+        (val: any) => val._id == String(verifyRefresh.payload.userId),
       ) == false
     ) {
       await res.clearCookie("refreshToken");
@@ -115,6 +114,8 @@ export async function VerifyAccessToken(
 
       return res.status(401).send("refresh token expired");
     }
+
+    let ttl2 = await RedisCli.ttl(`${accesstoken}`);
 
     if (!accesstoken || ttl2 <= 10) {
       let SignAccess = await SignAccessToken({
