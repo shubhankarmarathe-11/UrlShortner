@@ -131,6 +131,13 @@ export async function SignUpWithGoogle({
       900,
     );
 
+    let FetchUserexist = await RedisCli.get("existusers");
+
+    if (FetchUserexist != null) {
+      await JSON.parse(FetchUserexist).push(Register);
+      await RedisCli.set("existusers", JSON.stringify(FetchUserexist));
+    }
+
     return {
       status: true,
       message: "user register",
@@ -205,6 +212,13 @@ export async function RegisterUser({
       900,
     );
 
+    let FetchUserexist = await RedisCli.get("existusers");
+
+    if (FetchUserexist != null) {
+      await JSON.parse(FetchUserexist).push(Register);
+      await RedisCli.set("existusers", JSON.stringify(FetchUserexist));
+    }
+
     return {
       status: true,
       message: "user register",
@@ -248,6 +262,15 @@ export async function DeleteAccount({ userId }: { userId: string }) {
 
     session.commitTransaction();
     session.endSession();
+
+    let FetchUserexist = await RedisCli.get("existusers");
+
+    if (FetchUserexist != null) {
+      const filterdArray = await JSON.parse(FetchUserexist).filter(
+        (val: any) => val._id != userId,
+      );
+      await RedisCli.set("existusers", JSON.stringify(filterdArray));
+    }
 
     return { status: true, mess: "Account Deleted" };
   } catch (error) {
