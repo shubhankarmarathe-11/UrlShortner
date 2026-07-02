@@ -29,5 +29,5 @@ try {
     .collection("linkanalyticsmodels")
     .createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
 } catch (error) {
-  console.error(error);
+  console.error("err -", error);
 }

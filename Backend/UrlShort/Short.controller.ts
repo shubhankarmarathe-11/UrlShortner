@@ -61,6 +61,9 @@ export async function RedirectController(req: Request, res: Response) {
   try {
     const parser = new UAParser(req.headers["user-agent"]);
 
+    if (req.analytics_id == undefined)
+      return res.status(401).send("link expired");
+
     const result = parser.getResult();
 
     const analytics = {
@@ -129,14 +132,24 @@ export async function DeleteLinkController(req: Request, res: Response) {
   try {
     let { link_id } = req.params;
 
+    if ((await RedisCli.get(`${req.ip}deletelink`)) != null)
+      return res.status(401).send("in progress");
+
+    await RedisCli.set(`${req.ip}deletelink`, "true");
+
     const Deletelink = await DeleteLinkService({ linkId: String(link_id) });
 
-    if (Deletelink.status == false)
+    if (Deletelink.status == false) {
+      await RedisCli.del(`${req.ip}deletelink`);
       return res.status(500).send("server error please try again");
+    }
 
-    if (Deletelink.mess == "Data not found")
+    if (Deletelink.mess == "Data not found") {
+      await RedisCli.del(`${req.ip}deletelink`);
       return res.status(404).send("data not found");
+    }
 
+    await RedisCli.del(`${req.ip}deletelink`);
     return res.status(201).send("Link removed");
   } catch (error) {
     console.error(error);
