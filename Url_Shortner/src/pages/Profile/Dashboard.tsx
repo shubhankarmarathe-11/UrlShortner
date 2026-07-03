@@ -108,6 +108,7 @@ const Dashboard = () => {
         { withCredentials: true },
       );
       if (res.status == 201) {
+        SetlinkData({ datetime: "", longlink: "", slug: "" });
         Setreload(!reload);
       }
     } catch (error: any) {

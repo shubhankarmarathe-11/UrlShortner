@@ -1,10 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link2, Upload, Clipboard, Wand2 } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+
+  const [input, Setinput] = useState("");
+
   return (
     <>
       <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
@@ -51,8 +55,17 @@ const LandingPage = () => {
               className="p-6 sm:p-8 w-full"
               placeholder="Paste your long URL here"
               type="url"
+              value={input}
+              onChange={(e) => {
+                Setinput(e.target.value);
+              }}
             />
-            <Button className="p-6 sm:p-8 cursor-pointer w-full sm:w-auto px-6 sm:px-10">
+            <Button
+              className="p-6 sm:p-8 cursor-pointer w-full sm:w-auto px-6 sm:px-10"
+              onClick={() => {
+                navigate("/dashboard");
+              }}
+            >
               Shorten
             </Button>
           </span>
