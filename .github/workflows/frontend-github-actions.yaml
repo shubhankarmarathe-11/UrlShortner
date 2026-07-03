@@ -1,0 +1,31 @@
+name: Frontend Actions
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Url_Shortner/**"
+      - "package*.json"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /root/Document/UrlShortner/Url_Shortner
+            git pull
+            docker build -f "./dockerfile" -t urlfrontend:latest .
+            docker save urlfrontend:latest -o urlfrontend.tar
+            sudo k3s ctr image import urlfrontend.tar
+            kubectl delete deployment urlshortdeployment
+            kubectl apply -f "./urlshortnerdeployment.yaml"

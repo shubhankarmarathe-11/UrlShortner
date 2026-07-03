@@ -1,0 +1,30 @@
+name: Email Github Action
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Backend/UrlShort/**"
+      - "package*.json"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /root/Document/UrlShortner/Backend/UrlShort
+            git pull
+            docker build -f "./dockerfile" -t urlservice:latest .
+            docker save urlservice:latest -o urlservice.tar
+            sudo k3s ctr image import urlservice.tar
+            kubectl delete deployment urlservicedeployment
+            kubectl apply -f "./urlservicedeployment.yaml"

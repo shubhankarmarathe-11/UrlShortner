@@ -1,0 +1,30 @@
+name: Email Github Action
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "Backend/email/**"
+      - "package*.json"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy Via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /root/Document/UrlShortner/Backend/email
+            git pull
+            docker build -f "./dockerfile" -t emailservice:latest .
+            docker save emailservice:latest -o emailservice.tar
+            sudo k3s ctr image import emailservice.tar
+            kubectl delete deployment emailservicedeployment
+            kubectl apply -f "./emailservicedeployment.yaml"
