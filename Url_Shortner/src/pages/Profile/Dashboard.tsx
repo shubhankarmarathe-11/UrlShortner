@@ -336,6 +336,7 @@ const Dashboard = () => {
                                 import.meta.env.VITE_REDIRECT_URL
                               }/${data.UserId}/${data.Slug}`}
                               className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
+                              target="_blank"
                             >
                               {import.meta.env.VITE_HOST_URL}/
                               {import.meta.env.VITE_REDIRECT_URL}/{data.UserId}/
