@@ -19,7 +19,9 @@
     "typescript": "^5"
   },
   "scripts": {
-    "start": "bunx nodemon index.ts"
+    "dev": "bunx nodemon index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
