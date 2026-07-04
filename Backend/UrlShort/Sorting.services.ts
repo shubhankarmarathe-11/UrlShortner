@@ -161,7 +161,10 @@ export async function DeleteLinkService({ linkId }: { linkId: string }) {
       { session: session },
     );
 
-    if (Find == null) return { status: true, mess: "Data not found" };
+    if (Find == null) {
+      await session.endSession();
+      return { status: true, mess: "Data not found" };
+    }
 
     await urlanalyticcollection.deleteOne(
       { LinkId: new ObjectId(linkId) },

@@ -22,8 +22,6 @@ export async function GoogleSignup(req: Request, res: Response) {
       sub: sub,
     });
 
-    console.log(Register);
-
     if (Register.message == "user exist already") {
       return res.status(401).send("user exist already");
     }
@@ -147,9 +145,6 @@ export async function SignupController(req: Request, res: Response) {
     let rt = await Register.token?.Signrefresh;
 
     let at = await Register.token?.Signaccess;
-
-    console.log(at);
-    console.log("rt", rt);
 
     res.cookie("refreshToken", rt, {
       path: "/",
