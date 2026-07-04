@@ -19,7 +19,7 @@ export async function EntryService({
 
   const session = client.startSession();
   try {
-    session.startTransaction();
+    await session.startTransaction();
 
     const InsetDoc = await urlcolletion.insertOne(
       {
@@ -154,7 +154,7 @@ export async function DeleteLinkService({ linkId }: { linkId: string }) {
 
   const session = client.startSession();
   try {
-    session.startTransaction();
+    await session.startTransaction();
 
     const Find = await urlcolletion.findOne(
       { _id: new ObjectId(linkId) },
@@ -173,8 +173,8 @@ export async function DeleteLinkService({ linkId }: { linkId: string }) {
       { session: session },
     );
 
-    session.commitTransaction();
-    session.endSession();
+    await session.commitTransaction();
+    await session.endSession();
 
     await RedisCli.del(`${Find.UserId}:${Find.Slug}`);
 

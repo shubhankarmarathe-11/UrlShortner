@@ -245,7 +245,7 @@ export async function DeleteAccount({ userId }: { userId: string }) {
 
   const session = client.startSession();
   try {
-    session.startTransaction();
+    await session.startTransaction();
 
     await usercollection.deleteOne(
       { _id: new ObjectId(userId) },
@@ -262,17 +262,17 @@ export async function DeleteAccount({ userId }: { userId: string }) {
       { session: session },
     );
 
-    session.commitTransaction();
-    session.endSession();
+    await session.commitTransaction();
 
     let FetchUserexist = await RedisCli.get("existusers");
 
     if (FetchUserexist != null) {
       let filterdArray = await JSON.parse(FetchUserexist);
-      await filterdArray.filter((val: any) => val._id != userId);
-      await RedisCli.set("existusers", JSON.stringify(filterdArray));
+      let usersarr = await filterdArray.filter((val: any) => val._id != userId);
+      await RedisCli.set("existusers", JSON.stringify(usersarr));
     }
 
+    await session.endSession();
     return { status: true, mess: "Account Deleted" };
   } catch (error) {
     console.error(error);
