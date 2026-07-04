@@ -1,4 +1,4 @@
-name: Email Github Action
+name: Url Github Action
 on:
   push:
     branches:
