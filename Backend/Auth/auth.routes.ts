@@ -17,6 +17,10 @@ import {
 
 const AuthServiceRoute = express.Router();
 
+AuthServiceRoute.get("/auth/isloggedin", VerifyAccessToken, (req, res) => {
+  return res.status(200).send("logged in");
+});
+
 AuthServiceRoute.post("/auth/google/login", googleOAuthMiddleware, GoogleLogin);
 
 AuthServiceRoute.post(
@@ -44,9 +48,5 @@ AuthServiceRoute.post(
 );
 
 AuthServiceRoute.delete("/auth/account", VerifyAccessToken, deleteAccount);
-
-AuthServiceRoute.get("/auth/isloggedin", VerifyAccessToken, (req, res) => {
-  return res.status(200).send("logged in");
-});
 
 export { AuthServiceRoute };

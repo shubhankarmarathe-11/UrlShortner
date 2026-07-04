@@ -268,9 +268,8 @@ export async function DeleteAccount({ userId }: { userId: string }) {
     let FetchUserexist = await RedisCli.get("existusers");
 
     if (FetchUserexist != null) {
-      const filterdArray = await JSON.parse(FetchUserexist).filter(
-        (val: any) => val._id != userId,
-      );
+      let filterdArray = await JSON.parse(FetchUserexist);
+      await filterdArray.filter((val: any) => val._id != userId);
       await RedisCli.set("existusers", JSON.stringify(filterdArray));
     }
 
