@@ -23,7 +23,8 @@ jobs:
           script: |
             cd /root/Document/UrlShortner/Backend/email
             git pull
-            docker build -f "./dockerfile" -t emailservice:latest .
+            docker rmi emailservice:latest
+            docker build -f "./dockerfile" --no-cache -t emailservice:latest .
             docker save emailservice:latest -o emailservice.tar
             sudo k3s ctr image import emailservice.tar
             kubectl delete deployment emailservicedeployment

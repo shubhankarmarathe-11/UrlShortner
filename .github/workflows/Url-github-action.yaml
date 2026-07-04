@@ -23,7 +23,8 @@ jobs:
           script: |
             cd /root/Document/UrlShortner/Backend/UrlShort
             git pull
-            docker build -f "./dockerfile" -t urlservice:latest .
+            docker rmi urlservice:latest
+            docker build -f "./dockerfile" --no-cache -t urlservice:latest .
             docker save urlservice:latest -o urlservice.tar
             sudo k3s ctr image import urlservice.tar
             kubectl delete deployment urlservicedeployment
