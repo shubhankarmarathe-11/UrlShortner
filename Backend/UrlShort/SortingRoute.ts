@@ -3,14 +3,14 @@ import {
   VerifyAccessToken,
   RedirectMiddleware,
   CreateNewEntryMiddleware,
-} from "./Short.middleware.ts";
+} from "./Short.middleware.js";
 import {
   CreateEntry,
   GetLinksController,
   RedirectController,
   FetchAnalyticsController,
   DeleteLinkController,
-} from "./Short.controller.ts";
+} from "./Short.controller.js";
 
 const SortingRoute = express.Router();
 

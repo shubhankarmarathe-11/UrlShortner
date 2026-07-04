@@ -3,12 +3,13 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
-import { EmailServiceRoute } from "./email.routes.ts";
+import { EmailServiceRoute } from "./email.routes.js";
 
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT) || 3002;
+const port: number | string | undefined =
+  parseInt(process.env.PORT ? process.env.PORT : "3002") || 3002;
 
 const isProduction = process.env.NODE_ENV === "production";
 

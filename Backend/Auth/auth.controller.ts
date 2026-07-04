@@ -1,5 +1,5 @@
-import { RedisCli } from "./config/redis.ts";
-import { AUTH_REGEX } from "./utils/FormatCheckers.ts";
+import { RedisCli } from "./config/redis.js";
+import { AUTH_REGEX } from "./utils/FormatCheckers.js";
 import type { Request, Response } from "express";
 import {
   RegisterUser,
@@ -8,7 +8,7 @@ import {
   DeleteAccount,
   LoginWithGoogle,
   SignUpWithGoogle,
-} from "./auth.services.ts";
+} from "./auth.services.js";
 
 export async function GoogleSignup(req: Request, res: Response) {
   try {

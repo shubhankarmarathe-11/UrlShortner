@@ -3,8 +3,8 @@ import {
   VerifyEmailController,
   SendCustomEmailController,
   SendWelcomeEmailComtroller,
-} from "./email.controller.ts";
-import { VerifyEmailForOTP } from "./emailMiddleware.ts";
+} from "./email.controller.js";
+import { VerifyEmailForOTP } from "./emailMiddleware.js";
 
 const EmailServiceRoute = express.Router();
 

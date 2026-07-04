@@ -1,6 +1,6 @@
-import { RedisCli } from "./config/redis.ts";
-import { UrlModel, LinkAnalyticsModel } from "./Sorting.model.ts";
-import { db, client } from "./config/mongoconfig.ts";
+import { RedisCli } from "./config/redis.js";
+import { UrlModel, LinkAnalyticsModel } from "./Sorting.model.js";
+import { db, client } from "./config/mongoconfig.js";
 import { ObjectId } from "mongodb";
 
 export async function EntryService({
@@ -48,7 +48,7 @@ export async function EntryService({
 
     await urlcolletion.updateOne(
       { _id: InsetDoc.insertedId },
-      { $push: { LinkAnalytics: analytics.insertedId } },
+      { $set: { LinkAnalytics: analytics.insertedId } },
       { session: session },
     );
 
@@ -134,7 +134,7 @@ export async function UpdateAnalytics({
 export async function FetchAnalyticsService({
   analyticsId,
 }: {
-  analyticsId: string;
+  analyticsId: string | string[];
 }) {
   try {
     const Find = await LinkAnalyticsModel.findOne({ _id: analyticsId });

@@ -23,7 +23,7 @@ jobs:
           script: |
             cd /root/Document/UrlShortner/Backend/Auth
             git pull
-            docker rmi authservice:latest 
+            docker rmi authservice:latest
             docker build -f "./dockerfile" --no-cache -t authservice:latest .
             docker save authservice:latest -o authservice.tar
             sudo k3s ctr image import authservice.tar

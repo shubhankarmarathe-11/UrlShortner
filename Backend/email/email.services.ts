@@ -1,12 +1,12 @@
 import nodemailer from "nodemailer";
-import { RedisCli } from "./config/redis.ts";
+import { RedisCli } from "./config/redis.js";
 
 const generateOtp = async () => {
   const otp = Math.floor(100000 + Math.random() * 900000);
   return otp;
 };
 
-export async function SendMessage(email: string, type: string, data: object) {
+export async function SendMessage(email: any, type: string, data: any) {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {

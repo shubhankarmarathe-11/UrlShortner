@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
-import { SendMessage } from "./email.services.ts";
-import { RedisCli } from "./config/redis.ts";
+import { SendMessage } from "./email.services.js";
+import { RedisCli } from "./config/redis.js";
 
 async function VerifyEmailController(req: Request, res: Response) {
   try {
     const { email, type, data } = req.body;
 
-    let { status, message } = await SendMessage(email, type, data);
+    let { status, message }: any = await SendMessage(email, type, data);
 
     if (status == false) return res.status(400).send("please resend the email");
 
@@ -22,7 +22,7 @@ async function VerifyEmailController(req: Request, res: Response) {
 async function SendCustomEmailController(req: Request, res: Response) {
   try {
     const { email, type, data } = req.body;
-    let { status, message } = await SendMessage(email, type, data);
+    let { status, message }: any = await SendMessage(email, type, data);
 
     if (status == true) {
       return res.status(201).send("email sent please check your spam also");
@@ -36,7 +36,7 @@ async function SendCustomEmailController(req: Request, res: Response) {
 async function SendWelcomeEmailComtroller(req: Request, res: Response) {
   try {
     const { email, type, data } = req.body;
-    let { status, message } = await SendMessage(email, type, data);
+    let { status, message }: any = await SendMessage(email, type, data);
 
     if (status == true) {
       return res.status(201).send("email sent please check your spam also");

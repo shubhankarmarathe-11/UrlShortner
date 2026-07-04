@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { RedisCli } from "./config/redis.ts";
-import { FetchDataWithSlug } from "./Sorting.services.ts";
+import { RedisCli } from "./config/redis.js";
+import { FetchDataWithSlug } from "./Sorting.services.js";
 
 export async function VerifyAccessToken(
   req: Request,
@@ -72,12 +72,12 @@ export async function RedirectMiddleware(
         return res.status(404).send("link expired");
 
       req.link_id = Fetch.data?._id;
-      req.analytics_id = Fetch.data?.LinkAnalytics[0];
+      req.analytics_id = Fetch.data?.LinkAnalytics;
       req.LongURL = Fetch.data?.LongUrl;
 
       await RedisCli.hset(`${userid}:${slug}`, {
         link_id: Fetch.data?._id,
-        analytics_id: Fetch.data?.LinkAnalytics[0],
+        analytics_id: Fetch.data?.LinkAnalytics,
         longlink: Fetch.data?.LongUrl,
       });
 

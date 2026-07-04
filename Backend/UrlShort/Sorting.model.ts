@@ -18,12 +18,10 @@ const UrlSchema = new mongoose.Schema(
       ref: "usermodel",
     },
 
-    LinkAnalytics: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "LinkAnalyticsModel",
-      },
-    ],
+    LinkAnalytics: {
+      type: Schema.Types.ObjectId,
+      ref: "LinkAnalyticsModel",
+    },
 
     expireAt: {
       type: Date,

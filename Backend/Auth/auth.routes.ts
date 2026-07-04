@@ -3,7 +3,7 @@ import {
   SignupMiddleware,
   VerifyAccessToken,
   googleOAuthMiddleware,
-} from "./auth.middleware.ts";
+} from "./auth.middleware.js";
 import {
   SignupController,
   LoginController,
@@ -13,7 +13,7 @@ import {
   GoogleLogin,
   GoogleSignup,
   deleteAccount,
-} from "./auth.controller.ts";
+} from "./auth.controller.js";
 
 const AuthServiceRoute = express.Router();
 

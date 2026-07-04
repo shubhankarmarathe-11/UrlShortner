@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { MongoClient } from "mongodb";
-import { RedisCli } from "./config/redis.ts";
+import { RedisCli } from "./config/redis.js";
 
 export async function VerifyEmailForOTP(
   req: Request,

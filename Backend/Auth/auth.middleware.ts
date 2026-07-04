@@ -1,9 +1,9 @@
-import { RedisCli } from "./config/redis.ts";
-import { AUTH_REGEX } from "./utils/FormatCheckers.ts";
+import { RedisCli } from "./config/redis.js";
+import { AUTH_REGEX } from "./utils/FormatCheckers.js";
 import type { Request, Response, NextFunction } from "express";
-import { SignAccessToken, VerifyToken } from "./utils/GenerateToken.ts";
+import { SignAccessToken, VerifyToken } from "./utils/GenerateToken.js";
 import { OAuth2Client } from "google-auth-library";
-import { CacheUserInfo } from "./auth.services.ts";
+import { CacheUserInfo } from "./auth.services.js";
 
 export async function SignupMiddleware(
   req: Request,

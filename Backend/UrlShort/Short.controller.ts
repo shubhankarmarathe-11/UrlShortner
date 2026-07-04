@@ -1,13 +1,13 @@
 import type { Request, Response } from "express";
-import { UrlModel } from "./Sorting.model.ts";
+import { UrlModel } from "./Sorting.model.js";
 import {
   EntryService,
   GetAllLinks,
   UpdateAnalytics,
   FetchAnalyticsService,
   DeleteLinkService,
-} from "./Sorting.services.ts";
-import { RedisCli } from "./config/redis.ts";
+} from "./Sorting.services.js";
+import { RedisCli } from "./config/redis.js";
 import { UAParser } from "ua-parser-js";
 
 export async function CreateEntry(req: Request, res: Response) {

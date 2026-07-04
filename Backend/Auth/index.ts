@@ -3,13 +3,14 @@ import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
-import { AuthServiceRoute } from "./auth.routes.ts";
-import { ConnectMogo } from "./config/mongoconfig.ts";
+import { AuthServiceRoute } from "./auth.routes.js";
+import { ConnectMogo } from "./config/mongoconfig.js";
 
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT) || 3001;
+const port: number | string | undefined =
+  parseInt(process.env.PORT ? process.env.PORT : "3001") || 3001;
 const isProduction = process.env.NODE_ENV === "production";
 
 app.use(

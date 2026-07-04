@@ -1,9 +1,9 @@
-import { UserModel } from "./userauthmodel.ts";
+import { UserModel } from "./userauthmodel.js";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-import { SignToken } from "./utils/GenerateToken.ts";
-import { RedisCli } from "./config/redis.ts";
-import { db, client } from "./config/mongoconfig.ts";
+import { SignToken } from "./utils/GenerateToken.js";
+import { RedisCli } from "./config/redis.js";
+import { db, client } from "./config/mongoconfig.js";
 import { ObjectId } from "mongodb";
 
 export async function LoginWithGoogle({
