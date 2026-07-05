@@ -310,7 +310,7 @@ const Dashboard = () => {
                           <Button
                             className="bg-green-600 cursor-pointer text-sm sm:text-base"
                             onClick={() => {
-                              navigate(`/dashboard/${data.LinkAnalytics[0]}`);
+                              navigate(`/dashboard/${data.LinkAnalytics}`);
                             }}
                           >
                             View Analytics
