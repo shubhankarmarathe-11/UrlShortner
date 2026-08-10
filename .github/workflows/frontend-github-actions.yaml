@@ -22,10 +22,10 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /root/Document/UrlShortner/Url_Shortner
+            cd /root/Projects/UrlShortner/Url_Shortner
             git pull
-            docker build -f "./dockerfile" -t urlfrontend:latest .
-            docker save urlfrontend:latest -o urlfrontend.tar
+            docker build -f "./dockerfile" -t urlshortner:latest .
+            docker save urlshortner:latest -o urlfrontend.tar
             sudo k3s ctr image import urlfrontend.tar
             kubectl delete deployment urlshortdeployment
             kubectl apply -f "./urlshortnerdeployment.yaml"

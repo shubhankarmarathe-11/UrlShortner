@@ -21,10 +21,9 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /root/Document/UrlShortner/Backend/email
+            cd /root/Projects/UrlShortner/Backend/email
             git pull
-            docker rmi emailservice:latest
-            docker build -f "./dockerfile" --no-cache -t emailservice:latest .
+            docker build -f "./dockerfile" -t emailservice:latest .
             docker save emailservice:latest -o emailservice.tar
             sudo k3s ctr image import emailservice.tar
             kubectl delete deployment emailservicedeployment

@@ -257,4 +257,24 @@ export async function SendMessage(email: any, type: string, data: any) {
       return { status: false, message: "" };
     }
   }
+
+  if (type == "custom") {
+    try {
+      const info = await transporter.sendMail({
+        from: "shubhamkarmarathe2@gmail.com", // sender address
+        to: email,
+        subject: `Welcome Email from ${data.appName}`,
+        html: data.html,
+      });
+
+      console.log("Message sent: %s", info.messageId);
+      // Preview URL is only available when using an Ethereal test account
+      console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+
+      return { status: true, message: "email sent" };
+    } catch (err) {
+      console.error("Error while sending mail:", err);
+      return { status: false, message: "" };
+    }
+  }
 }
