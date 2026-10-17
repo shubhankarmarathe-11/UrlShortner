@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  VerifyAccessToken,
   RedirectMiddleware,
   CreateNewEntryMiddleware,
 } from "./Short.middleware.js";
@@ -12,32 +11,53 @@ import {
   DeleteLinkController,
 } from "./Short.controller.js";
 
+import type { NextFunction, Request, Response } from "express";
+
+const VerifyInternalToken = (
+  req: Request,
+  res: Response,
+  Next: NextFunction,
+) => {
+  const backendToken = req.headers["x-internal-secret"];
+  const actualToken = process.env.INTERNAL_TOKEN;
+
+  if (!backendToken || String(backendToken) !== String(actualToken)) {
+    return res.status(403).json({ error: "Access forbidden: Invalid token" });
+  }
+  Next();
+};
+
 const SortingRoute = express.Router();
 
 SortingRoute.post(
   "/api/short/link",
-  VerifyAccessToken,
+  VerifyInternalToken,
   CreateNewEntryMiddleware,
   CreateEntry,
 );
 
-SortingRoute.get("/api/short/link", VerifyAccessToken, GetLinksController);
+SortingRoute.get(
+  "/api/short/link/user/:userId",
+  VerifyInternalToken,
+  GetLinksController,
+);
 
 SortingRoute.get(
   "/api/short/link/:analytics_id",
-  VerifyAccessToken,
+  VerifyInternalToken,
   FetchAnalyticsController,
 );
 
 SortingRoute.get(
-  "/api/short/:userid/:slug",
+  "/api/redirect/:userid/:slug",
   RedirectMiddleware,
   RedirectController,
 );
 
 SortingRoute.delete(
   "/api/short/link/:link_id",
-  VerifyAccessToken,
+  VerifyInternalToken,
   DeleteLinkController,
 );
+
 export { SortingRoute };

@@ -24,7 +24,7 @@ export async function EntryService({
     const InsetDoc = await urlcolletion.insertOne(
       {
         LongUrl: longlink,
-        UserId: new ObjectId(userId),
+        UserId: userId,
         Slug: slug,
         expireAt: expiretime,
       },
@@ -35,7 +35,7 @@ export async function EntryService({
     const analytics = await urlanalyticcollection.insertOne(
       {
         LinkId: InsetDoc.insertedId,
-        userId: new ObjectId(userId),
+        userId: userId,
         expireAt: expiretime,
       },
       { session: session },
@@ -44,12 +44,6 @@ export async function EntryService({
     await urlanalyticcollection.createIndex(
       { expireAt: 1 },
       { expireAfterSeconds: 0 },
-    );
-
-    await urlcolletion.updateOne(
-      { _id: InsetDoc.insertedId },
-      { $set: { LinkAnalytics: analytics.insertedId } },
-      { session: session },
     );
 
     await session.commitTransaction();
@@ -137,7 +131,7 @@ export async function FetchAnalyticsService({
   analyticsId: string | string[];
 }) {
   try {
-    const Find = await LinkAnalyticsModel.findOne({ _id: analyticsId });
+    const Find = await LinkAnalyticsModel.findOne({ LinkId: analyticsId });
 
     if (Find == null) return { status: false, mess: "not found" };
 
@@ -182,6 +176,43 @@ export async function DeleteLinkService({ linkId }: { linkId: string }) {
     await RedisCli.del(`${Find.UserId}:${Find.Slug}`);
 
     return { status: true, mess: "Link Removed" };
+  } catch (error) {
+    console.error(error);
+    await session.abortTransaction();
+    await session.endSession();
+    return { status: false, mess: "transaction error" };
+  }
+}
+
+export async function DeleteAccountData({ userId }: { userId: string }) {
+  const urlcolletion = await db.collection("urlmodels");
+  const urlanalyticcollection = await db.collection("linkanalyticsmodels");
+
+  const session = client.startSession();
+  try {
+    await session.startTransaction();
+
+    const Find: any = await urlcolletion.find(
+      { UserId: userId },
+      { session: session },
+    );
+
+    if (Find == null || Find.length == 0) {
+      await session.endSession();
+      return { status: true, mess: "Data not found" };
+    }
+
+    await urlanalyticcollection.deleteMany(
+      { userId: userId },
+      { session: session },
+    );
+
+    await urlcolletion.deleteMany({ UserId: userId }, { session: session });
+
+    await session.commitTransaction();
+    await session.endSession();
+
+    return { status: true, mess: "Account Data Removed" };
   } catch (error) {
     console.error(error);
     await session.abortTransaction();

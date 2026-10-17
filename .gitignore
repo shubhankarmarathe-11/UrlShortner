@@ -1,0 +1,6 @@
+.env
+node_modules/
+.vscode/
+dist/
+pnpm-lock.yaml
+DATA_FETCHING_AND_UI_REVIEW.md

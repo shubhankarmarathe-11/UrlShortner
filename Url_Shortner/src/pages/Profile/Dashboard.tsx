@@ -1,24 +1,53 @@
-import { useNavigate, Link } from "react-router-dom";
-import { Link2 } from "lucide-react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
+import {
+  Link2,
+  LogOut,
+  Trash2,
+  BarChart3,
+  Copy,
+  Check,
+  ExternalLink,
+  Calendar,
+  Clock,
+  Sparkles,
+  Search,
+  Plus,
+  AlertCircle,
+  Hash,
+  Globe,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import { isLoggedIn } from "@/store/Loggedin";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AUTH_URL,
+  SHORT_URL,
+  HOST_URL,
+  REDIRECT_URL,
+  safeJsonParse,
+  getErrorMessage,
+  performLogout,
+} from "@/lib/api";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // const isLogged = isLoggedIn((state) => state.Logged);
-  const SetisLogged = isLoggedIn((state: any) => state.makeLogged);
-  const SetisLogout = isLoggedIn((state: any) => state.makeLogout);
+  const SetisLogged = isLoggedIn((state) => state.makeLogged);
+  const SetisLogout = isLoggedIn((state) => state.makeLogout);
 
   const blockOlddate = new Date().toISOString().slice(0, 16);
 
   const [shoLoader, SetshowLoader] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showAlert, SetshowAlert] = useState({
     status: false,
@@ -26,335 +55,601 @@ const Dashboard = () => {
     desc: "",
   });
 
+  const alertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [linkData, SetlinkData] = useState({
-    longlink: "",
+    longlink: location.state?.initialUrl || "",
     slug: "",
     datetime: "",
   });
 
-  const [reload, Setreload] = useState(true);
+  const [FetchedLinks, SetFetchedLinks] = useState<any[]>([]);
 
-  const [FetchedLinks, SetFetchedLinks] = useState([]);
-
-  async function ShowAlert(status: boolean, title: string, desc: string) {
+  function ShowAlert(status: boolean, title: string, desc: string) {
+    if (alertTimerRef.current) {
+      clearTimeout(alertTimerRef.current);
+    }
     SetshowAlert({
       status: status,
       title: title,
       desc: desc,
     });
-    setTimeout(() => {
-      SetshowAlert({ status: false, title: "", desc: "" });
-    }, 4000);
+    if (status) {
+      alertTimerRef.current = setTimeout(() => {
+        SetshowAlert({ status: false, title: "", desc: "" });
+      }, 4000);
+    }
   }
+
+  useEffect(() => {
+    return () => {
+      if (alertTimerRef.current) clearTimeout(alertTimerRef.current);
+    };
+  }, []);
 
   async function DeleteAccountFunction() {
-    try {
-      let res = await axios.delete(
-        `${import.meta.env.VITE_AUTH_URL}/api/auth/account`,
-        { withCredentials: true },
-      );
-
-      if (res.data == "user deleted") return navigate("/sign-in");
-    } catch (error: any) {
-      ShowAlert(true, "please try again", error.response.data);
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently delete your account? All your links and analytics will be removed.",
+      )
+    ) {
+      return;
     }
-  }
-  async function LogoutFunction() {
+
     try {
-      let res = await axios.post(
-        `${import.meta.env.VITE_AUTH_URL}/api/auth/logout`,
-        {},
+      const res = await axios.delete(
+        `${AUTH_URL}/api/users/accountdelete`,
         { withCredentials: true },
       );
 
-      if (res.data == "logout successful") return navigate("/sign-in");
-    } catch (error: any) {
-      ShowAlert(true, "please try again", error.response.data);
-    }
-  }
-
-  const CheckIsLoggedIn = async () => {
-    try {
-      let res = await axios.get(
-        `${import.meta.env.VITE_AUTH_URL}/api/auth/isloggedin`,
-        { withCredentials: true },
-      );
-
-      if (res.status == 200) {
-        SetisLogged();
-        SetshowLoader(false);
-      }
-    } catch (error: any) {
-      if (error.response.data == "refresh token expired") {
+      if (res.status === 202 || res.status === 200) {
         SetisLogout();
-        SetshowLoader(false);
         navigate("/sign-in");
       }
+    } catch (error: any) {
+      ShowAlert(
+        true,
+        "Please try again",
+        getErrorMessage(error, "Failed to delete account"),
+      );
     }
-  };
+  }
 
-  // post request
-  async function CreatelinkFunction() {
-    await CheckIsLoggedIn();
-
+  async function LogoutFunction() {
     try {
-      let res = await axios.post(
-        `${import.meta.env.VITE_SHORT_URL}/api/short/link`,
+      await performLogout();
+      SetisLogout();
+      navigate("/sign-in");
+    } catch (error: any) {
+      ShowAlert(
+        true,
+        "Please try again",
+        getErrorMessage(error, "Logout failed"),
+      );
+    }
+  }
+
+  // Get links request with AbortSignal support
+  async function GetActiveLinksFunction(signal?: AbortSignal) {
+    try {
+      const res = await axios.get(
+        `${SHORT_URL}/api/short/link`,
+        { withCredentials: true, signal },
+      );
+
+      const parsed = safeJsonParse<{ data?: any[] }>(res.data, { data: [] });
+      SetFetchedLinks(parsed?.data || []);
+      SetisLogged();
+    } catch (error: any) {
+      if (axios.isCancel(error)) return;
+
+      const errorMsg = error?.response?.data;
+      if (errorMsg === "no data available") {
+        SetFetchedLinks([]);
+      } else if (
+        errorMsg?.detail === "Unauthorized access" ||
+        error?.response?.status === 401 ||
+        errorMsg === "refresh token expired"
+      ) {
+        SetisLogout();
+        return navigate("/sign-in");
+      } else {
+        ShowAlert(true, "Error", getErrorMessage(error, "Could not load links"));
+      }
+    } finally {
+      SetshowLoader(false);
+    }
+  }
+
+  // Post request
+  async function CreatelinkFunction() {
+    if (!linkData.longlink.trim() || !linkData.slug.trim()) {
+      ShowAlert(true, "Missing Fields", "Please provide both destination URL and custom slug.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const expireDate = linkData.datetime ? new Date(linkData.datetime).toISOString() : null;
+
+      const res = await axios.post(
+        `${SHORT_URL}/api/short/link`,
         {
-          slug: linkData.slug,
-          longlink: linkData.longlink,
-          expiretime: new Date(linkData.datetime),
+          slug: linkData.slug.trim(),
+          longlink: linkData.longlink.trim(),
+          expiretime: expireDate,
         },
         { withCredentials: true },
       );
-      if (res.status == 201) {
+
+      if (res.status === 201 || res.status === 200) {
         SetlinkData({ datetime: "", longlink: "", slug: "" });
-        Setreload(!reload);
+        ShowAlert(true, "Success", "Short link created successfully!");
+        GetActiveLinksFunction();
       }
     } catch (error: any) {
-      ShowAlert(true, "please try again", error.response.data);
-    }
-  }
-
-  // get Request
-
-  async function GetActiveLinksFunction() {
-    await CheckIsLoggedIn();
-
-    try {
-      let res = await axios.get(
-        `${import.meta.env.VITE_SHORT_URL}/api/short/link`,
-        { withCredentials: true },
+      ShowAlert(
+        true,
+        "Please try again",
+        getErrorMessage(error, "Failed to create link"),
       );
-
-      SetFetchedLinks(res.data.data);
-    } catch (error: any) {
-      if (error.response.data != "no data available") {
-        ShowAlert(true, "Data not found", error.response.data);
-        SetFetchedLinks([]);
-      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
-  // delete Request
-
+  // Delete Request with Optimistic Update (Instant feedback)
   async function DeleteLinkFunction(link: string) {
+    if (!window.confirm("Are you sure you want to delete this short link?")) {
+      return;
+    }
+
+    // 1. Snapshot previous state for rollback
+    const previousLinks = [...FetchedLinks];
+
+    // 2. Optimistically remove item from UI immediately
+    SetFetchedLinks((prev) => prev.filter((item) => item._id !== link));
+
     try {
-      let res = await axios.delete(
-        `${import.meta.env.VITE_SHORT_URL}/api/short/link/${link}`,
+      const res = await axios.delete(
+        `${SHORT_URL}/api/short/link/${link}`,
         { withCredentials: true },
       );
 
-      if (res.status == 201) {
-        Setreload(!reload);
+      if (res.status === 201 || res.status === 200) {
+        ShowAlert(true, "Deleted", "Link deleted successfully");
       }
     } catch (error: any) {
-      ShowAlert(true, "please try again", error.response.data);
+      // 3. Rollback state if network failed
+      SetFetchedLinks(previousLinks);
+      ShowAlert(
+        true,
+        "Failed to delete",
+        getErrorMessage(error, "Failed to delete link"),
+      );
     }
   }
 
-  useEffect(() => {
-    CheckIsLoggedIn();
-  }, []);
+  const handleCopyLink = async (url: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      setTimeout(() => {
+        setCopiedId(null);
+      }, 2000);
+    } catch {
+      ShowAlert(true, "Copy Error", "Failed to copy link to clipboard.");
+    }
+  };
 
   useEffect(() => {
-    GetActiveLinksFunction();
-  }, [reload]);
+    const controller = new AbortController();
+    GetActiveLinksFunction(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
 
   if (shoLoader) {
     return (
-      <>
-        <div className="flex justify-center items-center bg-sky-50 min-h-screen">
-          <Spinner className="size-8" />
+      <div className="flex flex-col gap-3 justify-center items-center bg-gradient-to-b from-sky-50 via-white to-sky-50 min-h-screen">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow-xl border border-sky-100 flex items-center justify-center">
+          <Spinner className="size-8 text-indigo-600" />
         </div>
-      </>
+        <p className="text-sm font-medium text-slate-500 animate-pulse">
+          Loading dashboard...
+        </p>
+      </div>
     );
   }
 
+  // Filter links by search query
+  const filteredLinks = FetchedLinks.filter((item: any) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.Slug?.toLowerCase().includes(q) ||
+      item.LongUrl?.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <>
-      <div className="min-h-screen bg-sky-50 p-4 sm:p-5">
-        {showAlert.status ? (
-          <span className="fixed top-4 left-0 right-0 z-50 flex items-center justify-center px-4">
-            <Alert className="w-full max-w-sm bg-neutral">
-              <AlertTitle className="text-lg text-white">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-sky-50/60 text-slate-800 flex flex-col selection:bg-indigo-500 selection:text-white">
+      {/* Toast Notification */}
+      {showAlert.status && (
+        <div className="fixed top-5 left-0 right-0 z-50 flex items-center justify-center px-4 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
+          <Alert className="w-full max-w-md bg-white border border-indigo-200 shadow-xl shadow-slate-300/50 rounded-xl p-4 flex gap-3 items-start pointer-events-auto">
+            <AlertCircle className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <AlertTitle className="text-sm font-semibold text-slate-900">
                 {showAlert.title}
               </AlertTitle>
-              <AlertDescription className="text-white text-sm">
+              <AlertDescription className="text-xs text-slate-600 mt-0.5">
                 {showAlert.desc}
               </AlertDescription>
-            </Alert>
-          </span>
-        ) : null}
+            </div>
+          </Alert>
+        </div>
+      )}
 
-        {/* header */}
-        <div className="flex justify-between items-center mb-2">
-          <h1 className="text-2xl sm:text-3xl text-primary font-bold cursor-pointer">
-            <span className="flex items-center gap-2 sm:gap-3">
-              <Link2 />
-              UrlShortner
-            </span>
-          </h1>
-          <span>
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-sky-100/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex justify-between items-center">
+          <div
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer group"
+          >
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              <Link2 className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-indigo-700 to-sky-600 bg-clip-text text-transparent">
+                UrlShortner
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium hidden sm:inline -mt-0.5">
+                User Dashboard
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               onClick={DeleteAccountFunction}
-              className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
+              variant="ghost"
+              className="text-xs sm:text-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-2.5 sm:px-3 h-9 cursor-pointer flex items-center gap-1.5 transition-colors"
             >
-              Delete Account
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Delete Account</span>
             </Button>
-          </span>
-          <Button
-            onClick={LogoutFunction}
-            className="bg-transparent text-red-600 text-base sm:text-lg cursor-pointer hover:bg-transparent"
-          >
-            Logout
-          </Button>
+            <Button
+              onClick={LogoutFunction}
+              variant="outline"
+              className="text-xs sm:text-sm text-slate-700 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 rounded-lg px-3 sm:px-4 h-9 cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        {/* Quick Stats Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="bg-white border-sky-100 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <Layers className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Total Short Links
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5">
+                {FetchedLinks.length}
+              </h3>
+            </div>
+          </Card>
+
+          <Card className="bg-white border-sky-100 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Custom Slugs
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-0.5">
+                {FetchedLinks.filter((l) => l.Slug).length}
+              </h3>
+            </div>
+          </Card>
+
+          <Card className="bg-white border-sky-100 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Active Status
+              </p>
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-0.5">
+                Live
+              </h3>
+            </div>
+          </Card>
         </div>
 
-        <div className="my-5 flex justify-center items-center">
+        {/* Create Link Card */}
+        <Card className="bg-white border border-sky-100 shadow-xl shadow-slate-200/50 rounded-2xl p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Create a New Short Link
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500">
+                Paste your destination URL, specify your custom alias, and set
+                expiration
+              </p>
+            </div>
+          </div>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
               CreatelinkFunction();
             }}
-            className="w-full max-w-3xl flex flex-col justify-center gap-4 sm:gap-5"
+            className="space-y-5"
           >
-            <h1 className="text-sm font-medium">Enter Long Url</h1>
-            <Input
-              type="url"
-              placeholder="Enter Url"
-              value={linkData.longlink}
-              onChange={(e) => {
-                SetlinkData({ ...linkData, longlink: e.target.value });
-              }}
-              className="p-5 border-2"
-              required={true}
-            />
-            <h1 className="text-sm font-medium">Enter Slug</h1>
-            <Input
-              type="text"
-              className="p-5 border-2"
-              placeholder="Enter slug for short link"
-              value={linkData.slug}
-              onChange={(e) => {
-                SetlinkData({ ...linkData, slug: e.target.value });
-              }}
-              required={true}
-            />
-            <h1 className="text-sm font-medium">Select Date and Time</h1>
-            <Input
-              min={blockOlddate}
-              className="w-full sm:w-80 border-2"
-              placeholder=""
-              type="datetime-local"
-              value={linkData.datetime}
-              onChange={(e) => {
-                SetlinkData({ ...linkData, datetime: e.target.value });
-              }}
-              required={true}
-            />
-            <Button className="w-fit cursor-pointer" type="submit">
-              Submit
+            {/* Long URL */}
+            <div className="space-y-1.5">
+              <label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                <Link2 className="w-4 h-4 text-indigo-500" />
+                <span>Destination Long URL</span>
+              </label>
+              <Input
+                type="url"
+                placeholder="https://example.com/your-destination-link"
+                value={linkData.longlink}
+                onChange={(e) => {
+                  SetlinkData({ ...linkData, longlink: e.target.value });
+                }}
+                className="h-12 px-4 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
+                required={true}
+              />
+            </div>
+
+            {/* Slug & Date Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {/* Slug Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Hash className="w-4 h-4 text-indigo-500" />
+                  <span>Custom Slug / Alias</span>
+                </label>
+                <div className="relative flex items-center">
+                  <Input
+                    type="text"
+                    className="h-12 px-4 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
+                    placeholder="my-custom-link"
+                    value={linkData.slug}
+                    onChange={(e) => {
+                      SetlinkData({ ...linkData, slug: e.target.value });
+                    }}
+                    required={true}
+                  />
+                </div>
+              </div>
+
+              {/* Expiration DateTime */}
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-indigo-500" />
+                  <span>Expiration Date & Time</span>
+                </label>
+                <Input
+                  min={blockOlddate}
+                  className="h-12 px-4 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
+                  type="datetime-local"
+                  value={linkData.datetime}
+                  onChange={(e) => {
+                    SetlinkData({ ...linkData, datetime: e.target.value });
+                  }}
+                  required={true}
+                />
+              </div>
+            </div>
+
+            <Button
+              className="h-12 px-8 text-sm sm:text-base font-semibold bg-gradient-to-r from-indigo-600 to-sky-500 hover:from-indigo-700 hover:to-sky-600 text-white shadow-md shadow-indigo-500/25 cursor-pointer rounded-xl flex items-center gap-2 transition-all"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              <Plus className="w-4 h-4" />
+              <span>
+                {isSubmitting
+                  ? "Generating Short Link..."
+                  : "Create Short Link"}
+              </span>
             </Button>
           </form>
-        </div>
+        </Card>
 
-        <div className="my-5 w-full">
-          <h1 className="my-5 text-2xl sm:text-3xl text-center">
-            Active Links
-          </h1>
-          <span className="flex flex-col gap-5 my-8 sm:my-14 items-center justify-center px-0 sm:px-4">
-            {FetchedLinks.length == 0 ? (
-              <h1 className="text-center text-lg my-5">No Data Found</h1>
+        {/* Links List Section */}
+        <section className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                Your Active Links
+              </h2>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                {FetchedLinks.length}
+              </span>
+            </div>
+
+            {/* Search filter */}
+            {FetchedLinks.length > 0 && (
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                <Input
+                  type="text"
+                  placeholder="Filter by slug or URL..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9.5 pl-9 pr-3 text-xs bg-white border-slate-200 rounded-lg focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Cards Container */}
+          <div className="space-y-4">
+            {FetchedLinks.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-sky-100 p-10 sm:p-14 text-center shadow-sm flex flex-col items-center">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mb-4">
+                  <Link2 className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800">
+                  No short links created yet
+                </h3>
+                <p className="text-sm text-slate-500 max-w-sm mt-1">
+                  Use the form above to create your first short link and start
+                  tracking clicks!
+                </p>
+              </div>
+            ) : filteredLinks.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-sky-100 p-8 text-center text-slate-500 text-sm">
+                No links match "{searchQuery}"
+              </div>
             ) : (
-              FetchedLinks.map((data: any) => {
+              filteredLinks.map((data: any) => {
+                const shortUrl = `${HOST_URL}/${REDIRECT_URL}/${data.UserId}/${data.Slug}`;
+                const isCopied = copiedId === data._id;
+                const isExpired =
+                  new Date(data.expireAt).getTime() < Date.now();
+
                 return (
-                  <div key={data._id} className="w-full max-w-4xl">
-                    <Card className="group border hover:shadow-xl transition-all duration-300 rounded-2xl p-3 sm:p-5 bg-card">
-                      <CardContent className="space-y-4 sm:space-y-5">
-                        {/* Long URL */}
-                        <div>
-                          <p className="text-sm text-muted-foreground font-medium">
-                            Long URL
-                          </p>
-
-                          <p className="truncate text-base mt-1">
-                            {data.LongUrl}
-                          </p>
+                  <Card
+                    key={data._id}
+                    className="group bg-white border border-sky-100 hover:border-indigo-200 hover:shadow-lg shadow-sm transition-all duration-200 rounded-2xl p-4 sm:p-6"
+                  >
+                    <CardContent className="p-0 space-y-4">
+                      {/* Top Row: Slug, Expiration, and Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <span className="text-lg font-bold text-slate-900 flex items-center gap-1.5">
+                            <span className="text-indigo-600 font-mono">/</span>
+                            {data.Slug}
+                          </span>
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                              isExpired
+                                ? "bg-rose-100 text-rose-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {isExpired ? "Expired" : "Active"}
+                          </span>
                         </div>
 
-                        {/* Slug + Expiry */}
-                        <div className="flex flex-wrap gap-4 sm:gap-5 items-center">
-                          <div className="flex flex-col">
-                            <p className="text-sm text-muted-foreground">
-                              Slug
-                            </p>
-
-                            <span className="font-semibold text-lg">
-                              {data.Slug}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-col">
-                            <p className="text-sm text-muted-foreground">
-                              Expire At
-                            </p>
-
-                            <span className="rounded-full w-fit px-3 py-1 bg-red-100 text-red-600 text-sm">
-                              {new Date(data.expireAt).toLocaleString()}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Expires:</span>
+                          <span className="font-medium text-slate-700">
+                            {new Date(data.expireAt).toLocaleString()}
+                          </span>
                         </div>
+                      </div>
 
-                        <span className="flex flex-wrap items-center gap-3 sm:gap-8">
+                      {/* Middle Row: Long URL */}
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                          Target Destination
+                        </span>
+                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <a
+                            href={data.LongUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate hover:text-indigo-600 hover:underline flex items-center gap-1 max-w-full"
+                          >
+                            <span className="truncate">{data.LongUrl}</span>
+                            <ExternalLink className="w-3.5 h-3.5 shrink-0 opacity-70" />
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Bottom Row: Short URL Box & Action Buttons */}
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2">
+                        {/* Copyable Short URL */}
+                        <div className="flex-1 flex items-center justify-between gap-2 bg-slate-50 border border-slate-200/80 rounded-xl p-2 sm:px-3 text-xs sm:text-sm">
+                          <Link
+                            to={shortUrl}
+                            className="text-indigo-600 hover:text-indigo-700 font-mono font-medium truncate flex-1 hover:underline"
+                            target="_blank"
+                          >
+                            {shortUrl}
+                          </Link>
                           <Button
-                            className="bg-green-600 cursor-pointer text-sm sm:text-base"
+                            onClick={() => handleCopyLink(shortUrl, data._id)}
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 px-2.5 text-xs font-semibold rounded-lg shrink-0 cursor-pointer transition-all ${
+                              isCopied
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 mr-1" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Button
+                            className="h-9 px-3.5 text-xs sm:text-sm font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 cursor-pointer rounded-xl flex items-center gap-1.5 transition-colors shadow-none"
                             onClick={() => {
-                              navigate(`/dashboard/${data.LinkAnalytics}`);
+                              navigate(`/dashboard/${data._id}`);
                             }}
                           >
-                            View Analytics
+                            <BarChart3 className="w-4 h-4" />
+                            <span>Analytics</span>
                           </Button>
+
                           <Button
-                            className="bg-red-600 cursor-pointer text-sm sm:text-base"
+                            className="h-9 px-3 text-xs sm:text-sm font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 cursor-pointer rounded-xl flex items-center gap-1.5 transition-colors shadow-none"
                             onClick={() => {
                               DeleteLinkFunction(data._id);
                             }}
                           >
-                            Delete
+                            <Trash2 className="w-4 h-4" />
+                            <span>Delete</span>
                           </Button>
-                        </span>
-
-                        {/* Short URL */}
-                        <div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            Short Link
-                          </p>
-
-                          <div className="flex items-center justify-between gap-2 sm:gap-3 border rounded-xl p-2 sm:p-3 overflow-hidden">
-                            <Link
-                              to={`${import.meta.env.VITE_HOST_URL}/${
-                                import.meta.env.VITE_REDIRECT_URL
-                              }/${data.UserId}/${data.Slug}`}
-                              className="text-violet-600 hover:text-violet-500 underline break-all font-medium text-xs sm:text-sm min-w-0 flex-1"
-                              target="_blank"
-                            >
-                              {import.meta.env.VITE_HOST_URL}/
-                              {import.meta.env.VITE_REDIRECT_URL}/{data.UserId}/
-                              {data.Slug}
-                            </Link>
-                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 );
               })
             )}
-          </span>
-        </div>
-      </div>
-    </>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 };
 

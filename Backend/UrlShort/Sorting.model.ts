@@ -14,8 +14,8 @@ const UrlSchema = new mongoose.Schema(
     },
 
     UserId: {
-      type: Schema.Types.ObjectId,
-      ref: "usermodel",
+      type: String,
+      required: true,
     },
 
     LinkAnalytics: {
@@ -33,8 +33,8 @@ const UrlSchema = new mongoose.Schema(
 const LinkAnalyticsSchema = new mongoose.Schema(
   {
     userId: {
-      type: Schema.Types.ObjectId,
-      ref: "usermodel",
+      type: String,
+      required: true,
     },
 
     LinkId: {

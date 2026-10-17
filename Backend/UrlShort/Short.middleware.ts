@@ -2,24 +2,24 @@ import type { Request, Response, NextFunction } from "express";
 import { RedisCli } from "./config/redis.js";
 import { FetchDataWithSlug } from "./Sorting.services.js";
 
-export async function VerifyAccessToken(
-  req: Request,
-  res: Response,
-  Next: NextFunction,
-) {
-  try {
-    let refreshtoken = req.cookies["refreshToken"];
+// export async function VerifyAccessToken(
+//   req: Request,
+//   res: Response,
+//   Next: NextFunction,
+// ) {
+//   try {
+//     let refreshtoken = req.cookies["refreshToken"];
 
-    req.userId = await RedisCli.get(String(refreshtoken));
+//     req.body.userId = await RedisCli.get(String(refreshtoken));
 
-    if (req.userId == null) return res.status(500).send("token expired");
+//     if (req.body.userId == null) return res.status(500).send("token expired");
 
-    Next();
-  } catch (error) {
-    console.error(error);
-    return res.status(500).send("server error please try again");
-  }
-}
+//     Next();
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).send("server error please try again");
+//   }
+// }
 
 export async function CreateNewEntryMiddleware(
   req: Request,

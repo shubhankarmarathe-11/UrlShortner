@@ -7,13 +7,14 @@ import {
   FetchAnalyticsService,
   DeleteLinkService,
 } from "./Sorting.services.js";
-import { RedisCli } from "./config/redis.js";
+import { RedisCli, subscriber } from "./config/redis.js";
 import { UAParser } from "ua-parser-js";
 
 export async function CreateEntry(req: Request, res: Response) {
   try {
-    let { slug, longlink, expiretime } = req.body;
-    let userId = req.userId;
+    let { slug, longlink, expiretime, userId } = req.body;
+
+    console.log("userIdcreate", userId);
 
     const Insert = await EntryService({
       slug: slug,
@@ -42,7 +43,12 @@ export async function CreateEntry(req: Request, res: Response) {
 
 export async function GetLinksController(req: Request, res: Response) {
   try {
-    const FetchAllLinks = await GetAllLinks({ userId: String(req.userId) });
+    let userId = String(req.params.userId);
+    console.log(userId);
+
+    const FetchAllLinks = await GetAllLinks({
+      userId: userId,
+    });
 
     if (FetchAllLinks.mess == "transaction error")
       return res.status(500).send("server error please try again");
@@ -103,7 +109,7 @@ export async function RedirectController(req: Request, res: Response) {
     if (UpdateIt.status == false)
       return res.status(500).send("server error please try again");
 
-    return res.redirect(String(req.LongURL));
+    return res.status(200).redirect(String(req.LongURL));
   } catch (error) {
     console.error(error);
     return res.status(500).send("server error please try again");
