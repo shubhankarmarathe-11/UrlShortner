@@ -117,11 +117,16 @@ export function ForgetPassword() {
           "OTP Sent",
           typeof res.data === "string"
             ? res.data
-            : res.data?.message || "Email sent! Please check your spam folder as well."
+            : res.data?.message ||
+                "Email sent! Please check your spam folder as well.",
         );
       }
     } catch (error: any) {
-      ShowAlert(true, "Please try again", getErrorMessage(error, "Failed to send email"));
+      ShowAlert(
+        true,
+        "Please try again",
+        getErrorMessage(error, "Failed to send email"),
+      );
     } finally {
       Setloading(false);
     }
@@ -131,7 +136,7 @@ export function ForgetPassword() {
     Setloading(true);
     try {
       let res = await axios.post(
-        `${AUTH_URL}/api/auth/verifyotp`,
+        `${AUTH_URL}/api/email/verifyotp`,
         {
           email: auth.email,
           otp: auth.otp,
@@ -141,10 +146,18 @@ export function ForgetPassword() {
 
       if (res.data === "correct otp" || res.status === 200) {
         SetshowChangePassword(true);
-        ShowAlert(true, "Success", "OTP verified! Please enter your new password.");
+        ShowAlert(
+          true,
+          "Success",
+          "OTP verified! Please enter your new password.",
+        );
       }
     } catch (error: any) {
-      ShowAlert(true, "Invalid OTP", getErrorMessage(error, "Verification failed"));
+      ShowAlert(
+        true,
+        "Invalid OTP",
+        getErrorMessage(error, "Verification failed"),
+      );
     } finally {
       Setloading(false);
     }
@@ -154,22 +167,30 @@ export function ForgetPassword() {
     Setloading(true);
     try {
       let res = await axios.post(
-        `${AUTH_URL}/api/auth/forgot-password`,
+        `${AUTH_URL}/api/auth/update_password`,
         {
           email: auth.email,
-          newPassword: auth.newpass,
+          password: auth.newpass,
         },
         { withCredentials: true },
       );
 
-      if (res.data === "user updated" || res.status === 200) {
-        ShowAlert(true, "Success", "Password updated successfully! Redirecting...");
+      if (res.data === "Password Updated" || res.status === 201) {
+        ShowAlert(
+          true,
+          "Success",
+          "Password updated successfully! Redirecting...",
+        );
         setTimeout(() => {
           navigate("/sign-in");
         }, 800);
       }
     } catch (error: any) {
-      ShowAlert(true, "Please try again", getErrorMessage(error, "Could not change password"));
+      ShowAlert(
+        true,
+        "Please try again",
+        getErrorMessage(error, "Could not change password"),
+      );
     } finally {
       Setloading(false);
     }
@@ -227,10 +248,11 @@ export function ForgetPassword() {
           <div className="flex items-center justify-center gap-2 sm:gap-4 mt-6 w-full max-w-xs">
             <div className="flex items-center gap-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${currentStep >= 1
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 text-slate-400"
-                  }`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  currentStep >= 1
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-400"
+                }`}
               >
                 1
               </div>
@@ -239,15 +261,17 @@ export function ForgetPassword() {
               </span>
             </div>
             <div
-              className={`h-0.5 flex-1 transition-all ${currentStep >= 2 ? "bg-indigo-600" : "bg-slate-200"
-                }`}
+              className={`h-0.5 flex-1 transition-all ${
+                currentStep >= 2 ? "bg-indigo-600" : "bg-slate-200"
+              }`}
             />
             <div className="flex items-center gap-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${currentStep >= 2
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 text-slate-400"
-                  }`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  currentStep >= 2
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-400"
+                }`}
               >
                 2
               </div>
@@ -256,15 +280,17 @@ export function ForgetPassword() {
               </span>
             </div>
             <div
-              className={`h-0.5 flex-1 transition-all ${currentStep >= 3 ? "bg-indigo-600" : "bg-slate-200"
-                }`}
+              className={`h-0.5 flex-1 transition-all ${
+                currentStep >= 3 ? "bg-indigo-600" : "bg-slate-200"
+              }`}
             />
             <div className="flex items-center gap-1.5">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${currentStep >= 3
-                  ? "bg-indigo-600 text-white"
-                  : "bg-slate-100 text-slate-400"
-                  }`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  currentStep >= 3
+                    ? "bg-indigo-600 text-white"
+                    : "bg-slate-100 text-slate-400"
+                }`}
               >
                 3
               </div>
@@ -315,7 +341,9 @@ export function ForgetPassword() {
                 disabled={loading}
                 className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-sky-500 hover:from-indigo-700 hover:to-sky-600 text-white shadow-md shadow-indigo-500/20 cursor-pointer rounded-xl flex items-center justify-center gap-2 transition-all"
               >
-                <span>{loading ? "Sending OTP..." : "Send Verification OTP"}</span>
+                <span>
+                  {loading ? "Sending OTP..." : "Send Verification OTP"}
+                </span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             )}
@@ -427,7 +455,9 @@ export function ForgetPassword() {
                 disabled={loading}
                 className="w-full h-11 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 text-white shadow-md shadow-emerald-500/20 cursor-pointer rounded-xl flex items-center justify-center gap-2 transition-all"
               >
-                <span>{loading ? "Updating..." : "Update Password & Return to Home"}</span>
+                <span>
+                  {loading ? "Updating..." : "Update Password & Return to Home"}
+                </span>
                 <CheckCircle2 className="w-4 h-4" />
               </Button>
             </form>

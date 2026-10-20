@@ -16,12 +16,14 @@ import {
   Hash,
   Globe,
   Layers,
+  Shuffle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
+import { generateRandomSlug } from "@/lib/utils";
 import { isLoggedIn } from "@/store/Loggedin";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,11 +59,31 @@ const Dashboard = () => {
 
   const alertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [linkData, SetlinkData] = useState({
-    longlink: location.state?.initialUrl || "",
-    slug: "",
-    datetime: "",
+  const [linkData, SetlinkData] = useState(() => {
+    const initialUrl = location.state?.initialUrl || "";
+    return {
+      longlink: initialUrl,
+      slug: initialUrl ? generateRandomSlug(8) : "",
+      datetime: "",
+    };
   });
+
+  const handleUrlChange = (newUrl: string) => {
+    SetlinkData((prev) => {
+      // Auto-generate 8-character slug if slug is currently empty and user enters a URL
+      const shouldAutoGenerate = newUrl.trim().length > 0 && !prev.slug.trim();
+      return {
+        ...prev,
+        longlink: newUrl,
+        slug: shouldAutoGenerate ? generateRandomSlug(8) : prev.slug,
+      };
+    });
+  };
+
+  const handleGenerateRandomSlug = () => {
+    const newSlug = generateRandomSlug(8);
+    SetlinkData((prev) => ({ ...prev, slug: newSlug }));
+  };
 
   const [FetchedLinks, SetFetchedLinks] = useState<any[]>([]);
 
@@ -415,9 +437,7 @@ const Dashboard = () => {
                 type="url"
                 placeholder="https://example.com/your-destination-link"
                 value={linkData.longlink}
-                onChange={(e) => {
-                  SetlinkData({ ...linkData, longlink: e.target.value });
-                }}
+                onChange={(e) => handleUrlChange(e.target.value)}
                 className="h-12 px-4 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
                 required={true}
               />
@@ -427,22 +447,44 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {/* Slug Input */}
               <div className="space-y-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5">
-                  <Hash className="w-4 h-4 text-indigo-500" />
-                  <span>Custom Slug / Alias</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs sm:text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Hash className="w-4 h-4 text-indigo-500" />
+                    <span>Custom Slug / Alias</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateRandomSlug}
+                    className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Shuffle className="w-3 h-3" />
+                    <span>Generate Random</span>
+                  </button>
+                </div>
                 <div className="relative flex items-center">
                   <Input
                     type="text"
-                    className="h-12 px-4 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
-                    placeholder="my-custom-link"
+                    className="h-12 pl-4 pr-26 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all font-mono"
+                    placeholder="e.g. 8-char alias or custom"
                     value={linkData.slug}
                     onChange={(e) => {
                       SetlinkData({ ...linkData, slug: e.target.value });
                     }}
                     required={true}
                   />
+                  <button
+                    type="button"
+                    onClick={handleGenerateRandomSlug}
+                    title="Generate random 8-character slug"
+                    className="absolute right-1.5 h-9 px-3 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer border border-indigo-100/80 active:scale-95"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                    <span>Random</span>
+                  </button>
                 </div>
+                <p className="text-[11px] text-slate-400">
+                  Auto-fills when entering a URL, or click "Random" to generate an 8-character slug.
+                </p>
               </div>
 
               {/* Expiration DateTime */}
