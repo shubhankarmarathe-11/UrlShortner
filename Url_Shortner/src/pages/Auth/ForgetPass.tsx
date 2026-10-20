@@ -181,9 +181,8 @@ export function ForgetPassword() {
           "Success",
           "Password updated successfully! Redirecting...",
         );
-        setTimeout(() => {
-          navigate("/sign-in");
-        }, 800);
+
+        navigate("/");
       }
     } catch (error: any) {
       ShowAlert(
@@ -373,6 +372,7 @@ export function ForgetPassword() {
                       type="button"
                       onClick={() => SendEmail()}
                       className="text-xs text-rose-600 hover:underline font-medium cursor-pointer"
+                      disabled={showChangePassword}
                     >
                       Resend OTP
                     </button>
