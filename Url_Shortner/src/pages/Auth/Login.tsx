@@ -75,14 +75,18 @@ const Login = () => {
       const res = await axios.post(
         `${AUTH_URL}/api/auth/google/signup`,
         { google_token },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (res.status === 201 || res.status === 200) {
         SetisLogged();
         navigate("/dashboard");
       }
     } catch (error: any) {
-      ShowAlert(true, "Registration Failed", getErrorMessage(error, "Signup failed"));
+      ShowAlert(
+        true,
+        "Registration Failed",
+        getErrorMessage(error, "Signup failed"),
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -94,9 +98,9 @@ const Login = () => {
 
     try {
       const res = await axios.post(
-        `${AUTH_URL}/api/auth/google/login`,
+        `${AUTH_URL}/api/auth/login/google`,
         { google_token },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (res.status === 201 || res.status === 200) {
         SetisLogged();
@@ -104,17 +108,28 @@ const Login = () => {
       }
     } catch (error: any) {
       // Check if user doesn't exist BEFORE showing any false alarm alert!
-      if (error?.response?.data === "user not found" || error?.response?.data?.detail === "user not found") {
+      if (
+        error?.response?.data === "user not found" ||
+        error?.response?.data?.detail === "user not found"
+      ) {
         return NotFoundInterceptor(String(google_token));
       }
-      ShowAlert(true, "Authentication Failed", getErrorMessage(error, "Login failed"));
+      ShowAlert(
+        true,
+        "Authentication Failed",
+        getErrorMessage(error, "Login failed"),
+      );
       setGoogleLoading(false);
     }
   };
 
   const SubmitLogin = async () => {
     if (!auth.email || !auth.password) {
-      ShowAlert(true, "Missing Fields", "Please enter both email and password.");
+      ShowAlert(
+        true,
+        "Missing Fields",
+        "Please enter both email and password.",
+      );
       return;
     }
 
@@ -129,7 +144,7 @@ const Login = () => {
           sub: "",
           picture: "",
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (res.status === 200 || res.status === 201) {
@@ -137,7 +152,11 @@ const Login = () => {
         navigate("/dashboard");
       }
     } catch (error: any) {
-      ShowAlert(true, "Login Error", getErrorMessage(error, "Invalid credentials"));
+      ShowAlert(
+        true,
+        "Login Error",
+        getErrorMessage(error, "Invalid credentials"),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -339,7 +358,11 @@ const Login = () => {
                         onSuccess={handleSuccess}
                         onError={() => {
                           setGoogleLoading(false);
-                          ShowAlert(true, "Google Sign-In Failed", "Google authentication was cancelled or failed.");
+                          ShowAlert(
+                            true,
+                            "Google Sign-In Failed",
+                            "Google authentication was cancelled or failed.",
+                          );
                         }}
                       />
                     </GoogleOAuthProvider>

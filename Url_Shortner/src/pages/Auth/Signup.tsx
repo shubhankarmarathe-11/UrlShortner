@@ -71,10 +71,9 @@ const Signup = () => {
 
   const CheckIsLoggedIn = async () => {
     try {
-      const res = await axios.get(
-        `${AUTH_URL}/api/auth/isloggedin`,
-        { withCredentials: true }
-      );
+      const res = await axios.get(`${AUTH_URL}/api/auth/isloggedin`, {
+        withCredentials: true,
+      });
       if (res.status === 200) {
         SetisLogged();
         navigate("/dashboard");
@@ -95,14 +94,18 @@ const Signup = () => {
       const res = await axios.post(
         `${AUTH_URL}/api/auth/google/login`,
         { google_token },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (res.status === 201 || res.status === 200) {
         SetisLogged();
         navigate("/dashboard");
       }
     } catch (error: any) {
-      ShowAlert(true, "Authentication Failed", getErrorMessage(error, "Login failed"));
+      ShowAlert(
+        true,
+        "Authentication Failed",
+        getErrorMessage(error, "Login failed"),
+      );
     } finally {
       setGoogleLoading(false);
     }
@@ -114,26 +117,37 @@ const Signup = () => {
 
     try {
       const res = await axios.post(
-        `${AUTH_URL}/api/auth/google/signup`,
+        `${AUTH_URL}/api/auth/signup/google`,
         { google_token },
-        { withCredentials: true }
+        { withCredentials: true },
       );
       if (res.status === 201 || res.status === 200) {
         SetisLogged();
         navigate("/dashboard");
       }
     } catch (error: any) {
-      if (error?.response?.data === "user exist already" || error?.response?.data?.detail === "user exist already") {
+      if (
+        error?.response?.data === "user exist already" ||
+        error?.response?.data?.detail === "user exist already"
+      ) {
         return ExistAlreadyInterceptor(String(google_token));
       }
-      ShowAlert(true, "Registration Failed", getErrorMessage(error, "Signup failed"));
+      ShowAlert(
+        true,
+        "Registration Failed",
+        getErrorMessage(error, "Signup failed"),
+      );
       setGoogleLoading(false);
     }
   };
 
   const SubmitSignup = async () => {
     if (!auth.email || !auth.password || !auth.username) {
-      ShowAlert(true, "Missing Fields", "Please complete all fields to sign up.");
+      ShowAlert(
+        true,
+        "Missing Fields",
+        "Please complete all fields to sign up.",
+      );
       return;
     }
 
@@ -146,7 +160,7 @@ const Signup = () => {
           email: auth.email,
           password: auth.password,
         },
-        { withCredentials: true }
+        { withCredentials: true },
       );
 
       if (res.status === 201 || res.status === 200) {
@@ -157,7 +171,7 @@ const Signup = () => {
       ShowAlert(
         true,
         "Signup Error",
-        getErrorMessage(error, "Could not register account")
+        getErrorMessage(error, "Could not register account"),
       );
     } finally {
       setIsSubmitting(false);
@@ -252,7 +266,11 @@ const Signup = () => {
                       onSuccess={handleSuccess}
                       onError={() => {
                         setGoogleLoading(false);
-                        ShowAlert(true, "Google Sign-Up Failed", "Google authentication was cancelled or failed.");
+                        ShowAlert(
+                          true,
+                          "Google Sign-Up Failed",
+                          "Google authentication was cancelled or failed.",
+                        );
                       }}
                     />
                   </GoogleOAuthProvider>
