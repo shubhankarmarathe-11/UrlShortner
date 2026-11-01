@@ -4,6 +4,7 @@ import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
 import Dashboard from "./pages/Profile/Dashboard";
 import { AnalyticsPage } from "./pages/Profile/AnalyticsPage";
+import AuthenticateEmail from "./pages/Auth/AuthenticateEmail";
 
 function App() {
   return (
@@ -30,6 +31,24 @@ function App() {
           element={
             <>
               <Signup />
+            </>
+          }
+        />
+
+        <Route
+          path="/authenticate-email"
+          element={
+            <>
+              <AuthenticateEmail />
+            </>
+          }
+        />
+
+        <Route
+          path="/change-password"
+          element={
+            <>
+              <AuthenticateEmail />
             </>
           }
         />

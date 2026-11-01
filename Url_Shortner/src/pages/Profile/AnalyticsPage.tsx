@@ -13,6 +13,7 @@ import {
   Tablet,
   AlertCircle,
   ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
@@ -206,6 +207,9 @@ export const AnalyticsPage = () => {
   const SetisLogout = isLoggedIn((state) => state.makeLogout);
 
   const [shoLoader, SetshowLoader] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMountedRef = useRef(true);
+  const activeFetchIdRef = useRef(0);
 
   const [showAlert, SetshowAlert] = useState({
     status: false,
@@ -240,35 +244,71 @@ export const AnalyticsPage = () => {
     };
   }, []);
 
-  const FetchAnalytics = async (signal?: AbortSignal) => {
-    try {
-      const res = await axios.get(
-        `${SHORT_URL}/api/short/link/${_id}`,
-        { withCredentials: true, signal },
-      );
+  const FetchAnalytics = async (showLoading = true) => {
+    const fetchId = ++activeFetchIdRef.current;
+    if (showLoading) {
+      SetshowLoader(true);
+    } else {
+      setIsRefreshing(true);
+    }
 
-      const parsed = safeJsonParse<{ data?: any }>(res.data, {});
-      const dataObj = parsed?.data?.data || parsed?.data || {};
+    const maxRetries = 2;
+    let attempt = 0;
 
-      SetClickedCount(dataObj.ClickedCount || 0);
-      SetFetchData(dataObj.Data || []);
-      SetisLogged();
-    } catch (error: any) {
-      if (axios.isCancel(error)) return;
+    while (attempt <= maxRetries) {
+      try {
+        const res = await axios.get(
+          `${SHORT_URL}/api/short/link/${_id}`,
+          { withCredentials: true, timeout: 10000 },
+        );
 
-      const errorMsg = error?.response?.data;
-      if (
-        errorMsg === "refresh token expired" ||
-        errorMsg?.detail === "Unauthorized access" ||
-        error?.response?.status === 401
-      ) {
-        SetisLogout();
-        navigate("/sign-in");
-      } else {
+        if (isMountedRef.current && fetchId === activeFetchIdRef.current) {
+          const parsed = safeJsonParse<{ data?: any }>(res.data, {});
+          const dataObj = parsed?.data?.data || parsed?.data || {};
+
+          SetClickedCount(dataObj.ClickedCount || 0);
+          SetFetchData(dataObj.Data || []);
+          SetisLogged();
+          SetshowLoader(false);
+          setIsRefreshing(false);
+        }
+        return;
+      } catch (error: any) {
+        if (!isMountedRef.current || fetchId !== activeFetchIdRef.current) {
+          return;
+        }
+
+        const errorMsg = error?.response?.data;
+        const statusCode = error?.response?.status;
+
+        if (
+          errorMsg === "refresh token expired" ||
+          errorMsg?.detail === "Unauthorized access" ||
+          statusCode === 401
+        ) {
+          SetisLogout();
+          SetshowLoader(false);
+          setIsRefreshing(false);
+          return navigate("/sign-in");
+        }
+
+        const isNetworkOrServerError =
+          !statusCode ||
+          statusCode >= 500 ||
+          error.code === "ECONNABORTED" ||
+          error.message?.includes("Network Error");
+
+        if (attempt < maxRetries && isNetworkOrServerError) {
+          attempt++;
+          await new Promise((resolve) => setTimeout(resolve, attempt * 450));
+          continue;
+        }
+
         ShowAlert(true, "Error", getErrorMessage(error, "Failed to load analytics"));
+        SetshowLoader(false);
+        setIsRefreshing(false);
+        return;
       }
-    } finally {
-      SetshowLoader(false);
     }
   };
 
@@ -283,11 +323,11 @@ export const AnalyticsPage = () => {
   }
 
   useEffect(() => {
-    const controller = new AbortController();
-    FetchAnalytics(controller.signal);
+    isMountedRef.current = true;
+    FetchAnalytics();
 
     return () => {
-      controller.abort();
+      isMountedRef.current = false;
     };
   }, [_id]);
 
@@ -360,14 +400,30 @@ export const AnalyticsPage = () => {
             </div>
           </div>
 
-          <Button
-            onClick={LogoutFunction}
-            variant="outline"
-            className="text-xs sm:text-sm text-slate-700 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 rounded-lg px-3 sm:px-4 h-9 cursor-pointer flex items-center gap-1.5 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Logout</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => FetchAnalytics(false)}
+              disabled={isRefreshing}
+              className="text-xs sm:text-sm text-slate-700 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50 rounded-lg px-3 h-9 cursor-pointer flex items-center gap-1.5 transition-colors"
+              title="Refresh Analytics"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-600" : ""}`}
+              />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+
+            <Button
+              onClick={LogoutFunction}
+              variant="outline"
+              className="text-xs sm:text-sm text-slate-700 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50/50 rounded-lg px-3 sm:px-4 h-9 cursor-pointer flex items-center gap-1.5 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </Button>
+          </div>
         </div>
       </header>
 

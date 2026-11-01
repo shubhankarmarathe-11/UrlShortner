@@ -25,7 +25,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import axios from "axios";
-import { AUTH_URL, getErrorMessage } from "@/lib/api";
+import { AUTH_URL, getErrorMessage, decodeJwtPayload } from "@/lib/api";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -89,7 +89,7 @@ const Signup = () => {
     CheckIsLoggedIn();
   }, []);
 
-  const ExistAlreadyInterceptor = async (google_token: string) => {
+  const ExistAlreadyInterceptor = async (google_token: string, email?: string) => {
     try {
       const res = await axios.post(
         `${AUTH_URL}/api/auth/google/login`,
@@ -114,6 +114,8 @@ const Signup = () => {
   const handleSuccess = async (response: any) => {
     setGoogleLoading(true);
     const google_token = response.credential;
+    const decoded = decodeJwtPayload(google_token);
+    const userEmail = decoded?.email || "";
 
     try {
       const res = await axios.post(
@@ -123,14 +125,16 @@ const Signup = () => {
       );
       if (res.status === 201 || res.status === 200) {
         SetisLogged();
-        navigate("/dashboard");
+        navigate("/authenticate-email", {
+          state: { email: userEmail, google_token, fromGoogle: true },
+        });
       }
     } catch (error: any) {
       if (
         error?.response?.data === "user exist already" ||
         error?.response?.data?.detail === "user exist already"
       ) {
-        return ExistAlreadyInterceptor(String(google_token));
+        return ExistAlreadyInterceptor(String(google_token), userEmail);
       }
       ShowAlert(
         true,

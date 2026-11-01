@@ -17,6 +17,14 @@ import {
   Globe,
   Layers,
   Shuffle,
+  RefreshCw,
+  ShieldAlert,
+  ArrowRight,
+  KeyRound,
+  Lock,
+  Eye,
+  EyeOff,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
@@ -35,6 +43,8 @@ import {
   safeJsonParse,
   getErrorMessage,
   performLogout,
+  checkEmailAuthenticationStatus,
+  checkPasswordAddedStatus,
 } from "@/lib/api";
 
 const Dashboard = () => {
@@ -47,6 +57,16 @@ const Dashboard = () => {
   const blockOlddate = new Date().toISOString().slice(0, 16);
 
   const [shoLoader, SetshowLoader] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [authStatus, setAuthStatus] = useState<string | null>(null);
+  const [passwordStatus, setPasswordStatus] = useState<string | null>(null);
+  const [showAddPasswordModal, setShowAddPasswordModal] = useState(false);
+  const [addPasswordInput, setAddPasswordInput] = useState("");
+  const [showAddPasswordEye, setShowAddPasswordEye] = useState(false);
+  const [isAddingPassword, setIsAddingPassword] = useState(false);
+  const isMountedRef = useRef(true);
+  const activeFetchIdRef = useRef(0);
+
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +129,97 @@ const Dashboard = () => {
     };
   }, []);
 
+  async function CheckAuthStatus() {
+    try {
+      const status = await checkEmailAuthenticationStatus();
+      if (isMountedRef.current) {
+        setAuthStatus(status);
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setAuthStatus("Internal server");
+      }
+    }
+  }
+
+  async function CheckPasswordStatus() {
+    try {
+      const status = await checkPasswordAddedStatus();
+      if (isMountedRef.current) {
+        setPasswordStatus(status);
+      }
+    } catch {
+      if (isMountedRef.current) {
+        setPasswordStatus("not added");
+      }
+    }
+  }
+
+  async function HandleAddAccountPassword() {
+    const trimmedPassword = addPasswordInput.trim();
+    if (!trimmedPassword) {
+      ShowAlert(true, "Password Required", "Please enter a password.");
+      return;
+    }
+
+    setIsAddingPassword(true);
+    try {
+      const res = await axios.put(
+        `${AUTH_URL}/api/users/add_account_password`,
+        { password: trimmedPassword },
+        { withCredentials: true },
+      );
+
+      const resText =
+        typeof res.data === "string"
+          ? res.data.trim()
+          : res.data?.message || res.data?.status || "";
+
+      if (
+        resText.toLowerCase().includes("password added") ||
+        res.status === 200 ||
+        res.status === 201
+      ) {
+        setPasswordStatus("added");
+        setShowAddPasswordModal(false);
+        setAddPasswordInput("");
+        ShowAlert(true, "Success", "Password Added");
+      } else if (resText.toLowerCase().includes("internal server error")) {
+        ShowAlert(true, "Error", "Internal server error");
+      } else {
+        ShowAlert(true, "Notice", resText || "Password Added");
+        setPasswordStatus("added");
+        setShowAddPasswordModal(false);
+        setAddPasswordInput("");
+      }
+    } catch (error: any) {
+      const errData =
+        typeof error?.response?.data === "string"
+          ? error.response.data.trim()
+          : error?.response?.data?.detail ||
+            error?.response?.data?.message ||
+            "";
+
+      if (errData.toLowerCase().includes("internal server error")) {
+        ShowAlert(true, "Error", "Internal server error");
+      } else {
+        ShowAlert(
+          true,
+          "Error",
+          errData || getErrorMessage(error, "Internal server error"),
+        );
+      }
+    } finally {
+      setIsAddingPassword(false);
+    }
+  }
+
+  function TriggerAuthenticateEmail() {
+    navigate("/authenticate-email", {
+      state: { fromDashboard: true },
+    });
+  }
+
   async function DeleteAccountFunction() {
     if (
       !window.confirm(
@@ -151,35 +262,76 @@ const Dashboard = () => {
     }
   }
 
-  // Get links request with AbortSignal support
-  async function GetActiveLinksFunction(signal?: AbortSignal) {
-    try {
-      const res = await axios.get(
-        `${SHORT_URL}/api/short/link`,
-        { withCredentials: true, signal },
-      );
+  // Robust links request with automatic retry and race-condition safety
+  async function GetActiveLinksFunction(showLoading = true) {
+    const fetchId = ++activeFetchIdRef.current;
+    if (showLoading) {
+      SetshowLoader(true);
+    } else {
+      setIsRefreshing(true);
+    }
 
-      const parsed = safeJsonParse<{ data?: any[] }>(res.data, { data: [] });
-      SetFetchedLinks(parsed?.data || []);
-      SetisLogged();
-    } catch (error: any) {
-      if (axios.isCancel(error)) return;
+    const maxRetries = 2;
+    let attempt = 0;
 
-      const errorMsg = error?.response?.data;
-      if (errorMsg === "no data available") {
-        SetFetchedLinks([]);
-      } else if (
-        errorMsg?.detail === "Unauthorized access" ||
-        error?.response?.status === 401 ||
-        errorMsg === "refresh token expired"
-      ) {
-        SetisLogout();
-        return navigate("/sign-in");
-      } else {
+    while (attempt <= maxRetries) {
+      try {
+        const res = await axios.get(
+          `${SHORT_URL}/api/short/link`,
+          { withCredentials: true, timeout: 10000 },
+        );
+
+        if (isMountedRef.current && fetchId === activeFetchIdRef.current) {
+          const parsed = safeJsonParse<{ data?: any[] }>(res.data, { data: [] });
+          SetFetchedLinks(parsed?.data || []);
+          SetisLogged();
+          SetshowLoader(false);
+          setIsRefreshing(false);
+        }
+        return;
+      } catch (error: any) {
+        if (!isMountedRef.current || fetchId !== activeFetchIdRef.current) {
+          return;
+        }
+
+        const errorMsg = error?.response?.data;
+        const statusCode = error?.response?.status;
+
+        if (errorMsg === "no data available") {
+          SetFetchedLinks([]);
+          SetshowLoader(false);
+          setIsRefreshing(false);
+          return;
+        }
+
+        if (
+          errorMsg?.detail === "Unauthorized access" ||
+          statusCode === 401 ||
+          errorMsg === "refresh token expired"
+        ) {
+          SetisLogout();
+          SetshowLoader(false);
+          setIsRefreshing(false);
+          return navigate("/sign-in");
+        }
+
+        const isNetworkOrServerError =
+          !statusCode ||
+          statusCode >= 500 ||
+          error.code === "ECONNABORTED" ||
+          error.message?.includes("Network Error");
+
+        if (attempt < maxRetries && isNetworkOrServerError) {
+          attempt++;
+          await new Promise((resolve) => setTimeout(resolve, attempt * 450));
+          continue;
+        }
+
         ShowAlert(true, "Error", getErrorMessage(error, "Could not load links"));
+        SetshowLoader(false);
+        setIsRefreshing(false);
+        return;
       }
-    } finally {
-      SetshowLoader(false);
     }
   }
 
@@ -265,11 +417,13 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    GetActiveLinksFunction(controller.signal);
+    isMountedRef.current = true;
+    GetActiveLinksFunction();
+    CheckAuthStatus();
+    CheckPasswordStatus();
 
     return () => {
-      controller.abort();
+      isMountedRef.current = false;
     };
   }, []);
 
@@ -315,6 +469,98 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Add Password Modal Dialog */}
+      {showAddPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddPasswordModal(false);
+                setAddPasswordInput("");
+              }}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Add Account Password</h3>
+                <p className="text-xs text-slate-500">
+                  Set a password for your account to sign in directly
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                HandleAddAccountPassword();
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">
+                  New Password
+                </label>
+                <div className="relative flex items-center">
+                  <Lock className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    type={showAddPasswordEye ? "text" : "password"}
+                    placeholder="Enter new password"
+                    value={addPasswordInput}
+                    onChange={(e) => setAddPasswordInput(e.target.value)}
+                    className="h-11 pl-10 pr-10 text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
+                    required
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAddPasswordEye(!showAddPasswordEye)}
+                    className="absolute right-3 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                  >
+                    {showAddPasswordEye ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowAddPasswordModal(false);
+                    setAddPasswordInput("");
+                  }}
+                  className="text-xs text-slate-600 hover:text-slate-800 h-9.5 px-3 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isAddingPassword || !addPasswordInput.trim()}
+                  className="h-9.5 px-4 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white rounded-xl shadow-md shadow-indigo-500/20 cursor-pointer flex items-center gap-1.5 transition-all"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>{isAddingPassword ? "Adding Password..." : "Add password"}</span>
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 backdrop-blur-md bg-white/80 border-b border-sky-100/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex justify-between items-center">
@@ -336,6 +582,26 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {authStatus === "not verified" && (
+              <Button
+                onClick={TriggerAuthenticateEmail}
+                className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-amber-500/25 rounded-lg px-3 sm:px-3.5 h-9 cursor-pointer flex items-center gap-1.5 transition-all"
+              >
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Verify Email</span>
+              </Button>
+            )}
+
+            {passwordStatus === "not added" && (
+              <Button
+                onClick={() => setShowAddPasswordModal(true)}
+                className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white shadow-md shadow-indigo-500/25 rounded-lg px-3 sm:px-3.5 h-9 cursor-pointer flex items-center gap-1.5 transition-all"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Add password</span>
+              </Button>
+            )}
+
             <Button
               onClick={DeleteAccountFunction}
               variant="ghost"
@@ -358,6 +624,98 @@ const Dashboard = () => {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8">
+        {/* Email Verification Banner */}
+        {authStatus === "not verified" && (
+          <div className="bg-gradient-to-r from-amber-50 via-orange-50/50 to-amber-50 border border-amber-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 shadow-xs">
+                <ShieldAlert className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Your email is not verified</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 uppercase tracking-wider">
+                    Action Required
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Verify your email address using the 6-digit verification code to authenticate your account.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={TriggerAuthenticateEmail}
+              className="w-full sm:w-auto h-9.5 px-4 text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl shadow-md shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-1.5 shrink-0 transition-all"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Verify Email</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
+
+        {/* Add Password Banner */}
+        {passwordStatus === "not added" && (
+          <div className="bg-gradient-to-r from-indigo-50 via-sky-50/50 to-indigo-50 border border-indigo-200/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm animate-in fade-in duration-300">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0 shadow-xs">
+                <KeyRound className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span>Add Account Password</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 uppercase tracking-wider">
+                    Password Not Set
+                  </span>
+                </h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Set up a password for your account to sign in directly with email and password.
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                HandleAddAccountPassword();
+              }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto shrink-0"
+            >
+              <div className="relative flex items-center w-full sm:w-64">
+                <Lock className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                <Input
+                  type={showAddPasswordEye ? "text" : "password"}
+                  placeholder="Enter new password"
+                  value={addPasswordInput}
+                  onChange={(e) => setAddPasswordInput(e.target.value)}
+                  className="h-9.5 pl-9 pr-9 text-xs sm:text-sm bg-white border-slate-200 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500 transition-all"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddPasswordEye(!showAddPasswordEye)}
+                  className="absolute right-2.5 text-slate-400 hover:text-slate-600 cursor-pointer p-0.5"
+                >
+                  {showAddPasswordEye ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isAddingPassword || !addPasswordInput.trim()}
+                className="h-9.5 px-4 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white rounded-xl shadow-md shadow-indigo-500/20 cursor-pointer flex items-center justify-center gap-1.5 shrink-0 transition-all"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>{isAddingPassword ? "Adding..." : "Add password"}</span>
+              </Button>
+            </form>
+          </div>
+        )}
+
         {/* Quick Stats Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="bg-white border-sky-100 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-4">
@@ -389,15 +747,39 @@ const Dashboard = () => {
           </Card>
 
           <Card className="bg-white border-sky-100 shadow-sm rounded-2xl p-4 sm:p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-              <Clock className="w-6 h-6" />
+            <div
+              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                authStatus === "verified"
+                  ? "bg-emerald-50 text-emerald-600"
+                  : authStatus === "not verified"
+                  ? "bg-amber-50 text-amber-600"
+                  : "bg-emerald-50 text-emerald-600"
+              }`}
+            >
+              {authStatus === "not verified" ? (
+                <ShieldAlert className="w-6 h-6" />
+              ) : (
+                <Clock className="w-6 h-6" />
+              )}
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Active Status
+                Account Status
               </p>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-0.5">
-                Live
+              <h3
+                className={`text-2xl sm:text-3xl font-extrabold mt-0.5 ${
+                  authStatus === "verified"
+                    ? "text-emerald-600"
+                    : authStatus === "not verified"
+                    ? "text-amber-600 text-xl sm:text-2xl"
+                    : "text-emerald-600"
+                }`}
+              >
+                {authStatus === "verified"
+                  ? "Verified"
+                  : authStatus === "not verified"
+                  ? "Unverified"
+                  : "Live"}
               </h3>
             </div>
           </Card>
@@ -533,19 +915,35 @@ const Dashboard = () => {
               </span>
             </div>
 
-            {/* Search filter */}
-            {FetchedLinks.length > 0 && (
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
-                <Input
-                  type="text"
-                  placeholder="Filter by slug or URL..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9.5 pl-9 pr-3 text-xs bg-white border-slate-200 rounded-lg focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
+            <div className="flex items-center gap-2">
+              {/* Search filter */}
+              {FetchedLinks.length > 0 && (
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="Filter by slug or URL..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-9.5 pl-9 pr-3 text-xs bg-white border-slate-200 rounded-lg focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
+                  />
+                </div>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => GetActiveLinksFunction(false)}
+                disabled={isRefreshing}
+                className="h-9.5 px-3 border-slate-200 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-lg flex items-center gap-1.5 cursor-pointer text-xs font-medium shrink-0 transition-all"
+                title="Refresh Links"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-600" : ""}`}
                 />
-              </div>
-            )}
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+            </div>
           </div>
 
           {/* Cards Container */}
@@ -562,6 +960,18 @@ const Dashboard = () => {
                   Use the form above to create your first short link and start
                   tracking clicks!
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => GetActiveLinksFunction(false)}
+                  disabled={isRefreshing}
+                  className="mt-4 border-slate-200 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60 rounded-lg flex items-center gap-1.5 cursor-pointer text-xs font-medium transition-all"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-indigo-600" : ""}`}
+                  />
+                  <span>Check for Links</span>
+                </Button>
               </div>
             ) : filteredLinks.length === 0 ? (
               <div className="bg-white rounded-2xl border border-sky-100 p-8 text-center text-slate-500 text-sm">

@@ -70,6 +70,26 @@ const Login = () => {
     };
   }, []);
 
+  const CheckIsLoggedIn = async () => {
+    try {
+      const res = await axios.get(`${AUTH_URL}/api/auth/isloggedin`, {
+        withCredentials: true,
+      });
+      if (res.status === 200) {
+        SetisLogged();
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      if (error?.response?.data === "refresh token expired") {
+        SetisLogout();
+      }
+    }
+  };
+
+  useEffect(() => {
+    CheckIsLoggedIn();
+  }, []);
+
   const NotFoundInterceptor = async (google_token: string) => {
     try {
       const res = await axios.post(
