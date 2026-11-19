@@ -230,10 +230,9 @@ const Dashboard = () => {
     }
 
     try {
-      const res = await axios.delete(
-        `${AUTH_URL}/api/users/accountdelete`,
-        { withCredentials: true },
-      );
+      const res = await axios.delete(`${AUTH_URL}/api/users/accountdelete`, {
+        withCredentials: true,
+      });
 
       if (res.status === 202 || res.status === 200) {
         SetisLogout();
@@ -276,13 +275,15 @@ const Dashboard = () => {
 
     while (attempt <= maxRetries) {
       try {
-        const res = await axios.get(
-          `${SHORT_URL}/api/short/link`,
-          { withCredentials: true, timeout: 10000 },
-        );
+        const res = await axios.get(`${SHORT_URL}/api/short/link`, {
+          withCredentials: true,
+          timeout: 10000,
+        });
 
         if (isMountedRef.current && fetchId === activeFetchIdRef.current) {
-          const parsed = safeJsonParse<{ data?: any[] }>(res.data, { data: [] });
+          const parsed = safeJsonParse<{ data?: any[] }>(res.data, {
+            data: [],
+          });
           SetFetchedLinks(parsed?.data || []);
           SetisLogged();
           SetshowLoader(false);
@@ -327,7 +328,11 @@ const Dashboard = () => {
           continue;
         }
 
-        ShowAlert(true, "Error", getErrorMessage(error, "Could not load links"));
+        ShowAlert(
+          true,
+          "Error",
+          getErrorMessage(error, "Could not load links"),
+        );
         SetshowLoader(false);
         setIsRefreshing(false);
         return;
@@ -338,13 +343,19 @@ const Dashboard = () => {
   // Post request
   async function CreatelinkFunction() {
     if (!linkData.longlink.trim() || !linkData.slug.trim()) {
-      ShowAlert(true, "Missing Fields", "Please provide both destination URL and custom slug.");
+      ShowAlert(
+        true,
+        "Missing Fields",
+        "Please provide both destination URL and custom slug.",
+      );
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const expireDate = linkData.datetime ? new Date(linkData.datetime).toISOString() : null;
+      const expireDate = linkData.datetime
+        ? new Date(linkData.datetime).toISOString()
+        : null;
 
       const res = await axios.post(
         `${SHORT_URL}/api/short/link`,
@@ -385,10 +396,9 @@ const Dashboard = () => {
     SetFetchedLinks((prev) => prev.filter((item) => item._id !== link));
 
     try {
-      const res = await axios.delete(
-        `${SHORT_URL}/api/short/link/${link}`,
-        { withCredentials: true },
-      );
+      const res = await axios.delete(`${SHORT_URL}/api/short/link/${link}`, {
+        withCredentials: true,
+      });
 
       if (res.status === 201 || res.status === 200) {
         ShowAlert(true, "Deleted", "Link deleted successfully");
@@ -492,7 +502,9 @@ const Dashboard = () => {
                 <KeyRound className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Add Account Password</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Add Account Password
+                </h3>
                 <p className="text-xs text-slate-500">
                   Set a password for your account to sign in directly
                 </p>
@@ -553,7 +565,9 @@ const Dashboard = () => {
                   className="h-9.5 px-4 text-xs font-semibold bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 text-white rounded-xl shadow-md shadow-indigo-500/20 cursor-pointer flex items-center gap-1.5 transition-all"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
-                  <span>{isAddingPassword ? "Adding Password..." : "Add password"}</span>
+                  <span>
+                    {isAddingPassword ? "Adding Password..." : "Add password"}
+                  </span>
                 </Button>
               </div>
             </form>
@@ -639,7 +653,8 @@ const Dashboard = () => {
                   </span>
                 </h4>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Verify your email address using the 6-digit verification code to authenticate your account.
+                  Verify your email address using the 6-digit verification code
+                  to authenticate your account.
                 </p>
               </div>
             </div>
@@ -669,7 +684,8 @@ const Dashboard = () => {
                   </span>
                 </h4>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Set up a password for your account to sign in directly with email and password.
+                  Set up a password for your account to sign in directly with
+                  email and password.
                 </p>
               </div>
             </div>
@@ -752,8 +768,8 @@ const Dashboard = () => {
                 authStatus === "verified"
                   ? "bg-emerald-50 text-emerald-600"
                   : authStatus === "not verified"
-                  ? "bg-amber-50 text-amber-600"
-                  : "bg-emerald-50 text-emerald-600"
+                    ? "bg-amber-50 text-amber-600"
+                    : "bg-emerald-50 text-emerald-600"
               }`}
             >
               {authStatus === "not verified" ? (
@@ -771,15 +787,15 @@ const Dashboard = () => {
                   authStatus === "verified"
                     ? "text-emerald-600"
                     : authStatus === "not verified"
-                    ? "text-amber-600 text-xl sm:text-2xl"
-                    : "text-emerald-600"
+                      ? "text-amber-600 text-xl sm:text-2xl"
+                      : "text-emerald-600"
                 }`}
               >
                 {authStatus === "verified"
                   ? "Verified"
                   : authStatus === "not verified"
-                  ? "Unverified"
-                  : "Live"}
+                    ? "Unverified"
+                    : "Live"}
               </h3>
             </div>
           </Card>
@@ -865,7 +881,8 @@ const Dashboard = () => {
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Auto-fills when entering a URL, or click "Random" to generate an 8-character slug.
+                  Auto-fills when entering a URL, or click "Random" to generate
+                  an 8-character slug.
                 </p>
               </div>
 

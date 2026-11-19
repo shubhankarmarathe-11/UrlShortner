@@ -9,6 +9,8 @@ import { ConnectMysql } from "./config/mysqlconfig.js";
 import type { Request } from "express";
 import { subscriber } from "./config/redis.js";
 import { DeleteAccountData } from "./Sorting.services.js";
+import { Worker } from "bullmq";
+import { QueueConnectiontoRedis } from "./config/QueueConnection.js";
 
 dotenv.config();
 
@@ -52,6 +54,22 @@ subscriber.on("message", (channel, message) => {
   console.log(typeof message, message);
 
   let result = DeleteAccountData({ userId: String(message) });
+});
+
+let worker = new Worker(
+  "delete_account_data",
+  async (job) => {
+    let result = await DeleteAccountData({ userId: String(job.data.userId) });
+  },
+  { connection: QueueConnectiontoRedis },
+);
+
+worker.on("completed", () => {
+  console.log("Job completed,Account Deleted");
+});
+
+worker.on("failed", () => {
+  console.log("Job failed,Account Data is Deleted");
 });
 
 app.use(SortingRoute);
